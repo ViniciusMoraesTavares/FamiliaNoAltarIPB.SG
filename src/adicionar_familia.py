@@ -10,7 +10,7 @@ FOTOS_PATH = "imagens/familias"
 DADOS_PATH = "dados/familias.json"
 
 class JanelaAdicionarFamilia(QWidget):
-    familia_adicionada = Signal()  # Sinal para notificar a adição da família
+    familia_adicionada = Signal()  
 
     def __init__(self):
         super().__init__()

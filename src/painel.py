@@ -1,15 +1,18 @@
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QGridLayout, QHBoxLayout,
-    QPushButton, QLabel, QScrollArea, QGroupBox, QSpacerItem, QSizePolicy
+    QPushButton, QLabel, QScrollArea, QGroupBox,
+    QSpacerItem, QSizePolicy, QLineEdit
 )
-from PySide6.QtGui import QPixmap, QFont, QIcon
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QPixmap, QFont
+from PySide6.QtCore import Qt
 import sys, os, random
 
-from src.adicionar_familia import JanelaAdicionarFamilia
-from src.sorteio_tela import JanelaSorteio
-from src.utils import carregar_familias, salvar_familias
-from src.editar_familia import JanelaEditarFamilia
+from src.adicionar_familia    import JanelaAdicionarFamilia
+from src.sorteio_tela          import JanelaSorteio
+from src.editar_familia        import JanelaEditarFamilia
+from src.janela_confirmacao    import JanelaConfirmacao
+from src.utils                 import carregar_familias, salvar_familias
+from src.filtro_familias       import nao_sorteadas, sorteadas, buscar
 
 
 class PainelPrincipal(QWidget):
@@ -18,21 +21,31 @@ class PainelPrincipal(QWidget):
         self.setWindowTitle("Família no Altar - Painel")
         self.setMinimumSize(1200, 800)
         self.setStyleSheet("background-color: white;")
-        self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowMinMaxButtonsHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(
+            Qt.Window |
+            Qt.CustomizeWindowHint |
+            Qt.WindowMinMaxButtonsHint |
+            Qt.WindowCloseButtonHint
+        )
+
+        self.filtro_atual   = "todas"
+        self.termo_pesquisa = ""
 
         self.janela_adicionar = JanelaAdicionarFamilia()
-        self.janela_sorteio = None
-        self.numero_sorteado = None
+        self.janela_adicionar.familia_adicionada.connect(self._on_nova_familia)
+        self.janela_sorteio   = None
+        self.numero_sorteado  = None
 
         self.init_ui()
         self.showMaximized()
 
-    def familia_adicionada_com_sucesso(self):
-        self.atualizar_galeria()  # Atualiza a galeria após adicionar a família
-        self.repaint()  # Força a atualização da interface imediatamente
+    def _on_nova_familia(self):
+        self.filtro_atual = "todas"
+        self.search_input.clear()
+        self.atualizar_galeria()    
 
     def init_ui(self):
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
 
@@ -58,8 +71,8 @@ class PainelPrincipal(QWidget):
         self.botao_finalizar.setEnabled(False)
 
         self.btn_resetar = QPushButton("🔄 Resetar Sorteio")
-        self.btn_resetar.setStyleSheet(self.estilo_botao_principal())
         self.btn_resetar.clicked.connect(self.resetar_sorteio)
+        self.btn_resetar.setStyleSheet(self.estilo_botao_principal())
         self.btn_resetar.setVisible(False)
 
         botoes_layout.addWidget(btn_adicionar)
@@ -68,7 +81,25 @@ class PainelPrincipal(QWidget):
         botoes_layout.addWidget(self.btn_resetar)
 
         layout.addLayout(botoes_layout)
-        layout.addSpacerItem(QSpacerItem(10, 20, QSizePolicy.Minimum, QSizePolicy.Fixed))
+
+        filtros_layout = QHBoxLayout()
+        filtros_layout.setSpacing(10)
+
+        btn_todas     = QPushButton("Todas")
+        btn_nao       = QPushButton("Não Sorteadas")
+        btn_sorteadas = QPushButton("Sorteadas")
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("🔍 Pesquisar por nome ou número…")
+
+        for w in (btn_todas, btn_nao, btn_sorteadas, self.search_input):
+            filtros_layout.addWidget(w)
+
+        btn_todas.clicked.connect(lambda: self.atualizar_filtro("todas"))
+        btn_nao.clicked.connect(lambda: self.atualizar_filtro("nao_sorteadas"))
+        btn_sorteadas.clicked.connect(lambda: self.atualizar_filtro("sorteadas"))
+        self.search_input.textChanged.connect(self.atualizar_busca)
+
+        layout.addLayout(filtros_layout)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -76,31 +107,6 @@ class PainelPrincipal(QWidget):
         layout.addWidget(self.scroll_area)
 
         self.atualizar_galeria()
-        self.setLayout(layout)
-
-    def verificar_reset_necessario(self):
-        familias = carregar_familias()
-        todas_sorteadas = all(f.get("sorteado", False) for f in familias)
-        self.btn_resetar.setVisible(todas_sorteadas)
-
-    def resetar_sorteio(self):
-        familias = carregar_familias()
-
-        for f in familias:
-            f["sorteado"] = False
-
-        total = len(familias)
-        numeros_aleatorios = list(range(1, total + 1))
-        random.shuffle(numeros_aleatorios)
-
-        for f, novo_numero in zip(familias, numeros_aleatorios):
-            f["numero"] = novo_numero
-
-        salvar_familias(familias)
-        self.numero_sorteado = None
-        self.botao_finalizar.setEnabled(False)
-        self.atualizar_galeria()
-        self.verificar_reset_necessario()
 
     def estilo_botao_principal(self):
         return """
@@ -120,56 +126,89 @@ class PainelPrincipal(QWidget):
             }
         """
 
+    def atualizar_filtro(self, filtro):
+        self.filtro_atual = filtro
+        self.atualizar_galeria()
+
+    def atualizar_busca(self, texto):
+        self.termo_pesquisa = texto
+        self.atualizar_galeria()
+
     def atualizar_galeria(self):
         familias = carregar_familias()
-        grupo = QGroupBox("Famílias Cadastradas")
+
+        if self.filtro_atual == "nao_sorteadas":
+            familias = nao_sorteadas(familias)
+        elif self.filtro_atual == "sorteadas":
+            familias = sorteadas(familias)
+
+        familias = buscar(familias, self.termo_pesquisa)
+
+        grupo = QGroupBox("")
         grupo.setStyleSheet("""
             QGroupBox {
                 font-size: 20px;
                 color: #2E7D32;
-                margin-top: 10px;
+                margin-top: 5px;
             }
         """)
         layout_grade = QGridLayout()
         layout_grade.setSpacing(25)
-
         for i, f in enumerate(familias):
             card = self.criar_card_familia(f)
             layout_grade.addWidget(card, i // 4, i % 4)
-
         grupo.setLayout(layout_grade)
         self.scroll_area.setWidget(grupo)
 
         self.verificar_reset_necessario()
 
+    def verificar_reset_necessario(self):
+        familias = carregar_familias()
+        todas = all(f.get("sorteado", False) for f in familias)
+        self.btn_resetar.setVisible(todas)
+
+    def resetar_sorteio(self):
+        familias = carregar_familias()
+        for f in familias:
+            f["sorteado"] = False
+        numeros = list(range(1, len(familias) + 1))
+        random.shuffle(numeros)
+        for f, num in zip(familias, numeros):
+            f["numero"] = num
+        salvar_familias(familias)
+        self.numero_sorteado = None
+        self.botao_finalizar.setEnabled(False)
+        self.atualizar_galeria()
+
     def criar_card_familia(self, familia):
         widget = QWidget()
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(widget)
         layout.setAlignment(Qt.AlignCenter)
         layout.setSpacing(10)
 
         img_label = QLabel()
         caminho = familia.get("foto", "")
         if os.path.exists(caminho):
-            pixmap = QPixmap(caminho).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            img_label.setPixmap(pixmap)
+            pix = QPixmap(caminho).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            img_label.setPixmap(pix)
         else:
             img_label.setText("📷")
             img_label.setFont(QFont("Arial", 40))
-
         img_label.setAlignment(Qt.AlignCenter)
 
         nome_label = QLabel(familia.get("nome", "Sem Nome"))
         nome_label.setAlignment(Qt.AlignCenter)
         nome_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #444;")
-
         numero_label = QLabel(f"🎟️ Número: {familia.get('numero', '-')}") 
         numero_label.setAlignment(Qt.AlignCenter)
         numero_label.setStyleSheet("color: #555; font-size: 14px;")
 
-        status_label = QLabel("✅ Sorteado" if familia.get("sorteado") else "⏳ Aguardando")
+        status = "✅ Sorteado" if familia.get("sorteado") else "⏳ Aguardando"
+        status_label = QLabel(status)
         status_label.setAlignment(Qt.AlignCenter)
-        status_label.setStyleSheet("color: green;" if familia.get("sorteado") else "color: #888; font-style: italic;")
+        status_label.setStyleSheet(
+            "color: green;" if familia.get("sorteado") else "color: #888; font-style: italic;"
+        )
 
         editar_btn = QPushButton("✏️ Editar")
         editar_btn.setStyleSheet("""
@@ -185,13 +224,23 @@ class PainelPrincipal(QWidget):
         """)
         editar_btn.clicked.connect(lambda: self.abrir_edicao_familia(familia))
 
-        layout.addWidget(img_label)
-        layout.addWidget(nome_label)
-        layout.addWidget(numero_label)
-        layout.addWidget(status_label)
-        layout.addWidget(editar_btn)
+        excluir_btn = QPushButton("🗑️ Excluir")
+        excluir_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #E57373;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 6px;
+            }
+            QPushButton:hover {
+                background-color: #EF5350;
+            }
+        """)
+        excluir_btn.clicked.connect(lambda: self.excluir_familia(familia))
 
-        widget.setLayout(layout)
+        for w in (img_label, nome_label, numero_label, status_label, editar_btn, excluir_btn):
+            layout.addWidget(w)
+
         widget.setStyleSheet("""
             background-color: #F1F8E9;
             border: 1px solid #C8E6C9;
@@ -203,7 +252,6 @@ class PainelPrincipal(QWidget):
         if self.janela_sorteio and self.janela_sorteio.isVisible():
             self.janela_sorteio.raise_()
             return
-
         self.janela_sorteio = JanelaSorteio()
         self.janela_sorteio.sorteioRealizado.connect(self.on_sorteio_realizado)
         self.janela_sorteio.showFullScreen()
@@ -215,25 +263,35 @@ class PainelPrincipal(QWidget):
     def finalizar_sorteio_panel(self):
         if not self.numero_sorteado:
             return
-
         familias = carregar_familias()
         for f in familias:
             if str(f.get("numero")) == str(self.numero_sorteado):
                 f["sorteado"] = True
                 break
-
         salvar_familias(familias)
         self.numero_sorteado = None
         self.botao_finalizar.setEnabled(False)
-
         if self.janela_sorteio:
             self.janela_sorteio.close()
-
         self.atualizar_galeria()
 
     def abrir_edicao_familia(self, familia):
         self.janela_edicao = JanelaEditarFamilia(familia, self.atualizar_galeria)
         self.janela_edicao.show()
+
+    def excluir_familia(self, familia):
+        texto = f"Tem certeza que deseja\nexcluir a família '{familia['nome']}'?"
+        msg_sucesso = f"Família '{familia['nome']}' removida com sucesso!"
+        dlg = JanelaConfirmacao(texto, parent=self, info_text=msg_sucesso)
+        dlg.confirmado.connect(lambda: self._executar_exclusao(familia))
+        dlg.show()
+
+    def _executar_exclusao(self, familia):
+        familias = carregar_familias()
+        familias = [f for f in familias if f["numero"] != familia["numero"]]
+        salvar_familias(familias)
+        self.atualizar_galeria()
+
 
 def iniciar_painel():
     app = QApplication(sys.argv)
