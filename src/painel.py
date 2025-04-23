@@ -13,6 +13,9 @@ from src.editar_familia        import JanelaEditarFamilia
 from src.janela_confirmacao    import JanelaConfirmacao
 from src.utils                 import carregar_familias, salvar_familias
 from src.filtro_familias       import nao_sorteadas, sorteadas, buscar
+from src.utils_familias import contar_familias
+from src.utils_sorteio import salvar_sorteio
+from src.resetar import resetar_sorteio
 
 
 class PainelPrincipal(QWidget):
@@ -49,7 +52,7 @@ class PainelPrincipal(QWidget):
         layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
 
-        titulo = QLabel("📊 Painel de Controle - Família no Altar")
+        titulo = QLabel("Família no Altar - IPB.SG")
         titulo.setFont(QFont("Arial", 28, QFont.Bold))
         titulo.setStyleSheet("color: #2E7D32;")
         layout.addWidget(titulo, alignment=Qt.AlignLeft)
@@ -71,7 +74,7 @@ class PainelPrincipal(QWidget):
         self.botao_finalizar.setEnabled(False)
 
         self.btn_resetar = QPushButton("🔄 Resetar Sorteio")
-        self.btn_resetar.clicked.connect(self.resetar_sorteio)
+        self.btn_resetar.clicked.connect(self.resetar_sorteio_callback)
         self.btn_resetar.setStyleSheet(self.estilo_botao_principal())
         self.btn_resetar.setVisible(False)
 
@@ -91,7 +94,11 @@ class PainelPrincipal(QWidget):
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("🔍 Pesquisar por nome ou número…")
 
-        for w in (btn_todas, btn_nao, btn_sorteadas, self.search_input):
+        self.label_total = QLabel()
+        self.label_total.setText(f"Total de Famílias: {contar_familias()}")
+        self.label_total.setStyleSheet("font-size: 16px; color: #333;")
+
+        for w in (btn_todas, btn_nao, btn_sorteadas, self.search_input, self.label_total):
             filtros_layout.addWidget(w)
 
         btn_todas.clicked.connect(lambda: self.atualizar_filtro("todas"))
@@ -107,6 +114,14 @@ class PainelPrincipal(QWidget):
         layout.addWidget(self.scroll_area)
 
         self.atualizar_galeria()
+
+    def resetar_sorteio_callback(self):
+        resetar_sorteio()  # Chama a função do módulo resetar.py
+        self.atualizar_galeria()  # Atualiza a galeria após resetar
+        self.botao_finalizar.setEnabled(False)  # Desabilita o botão de finalizar sorteio
+        self.numero_sorteado = None  # Reseta o número sorteado
+        self.verificar_reset_necessario()  # Verifica se o botão de resetar deve ser exibido
+        
 
     def estilo_botao_principal(self):
         return """
@@ -162,23 +177,12 @@ class PainelPrincipal(QWidget):
 
         self.verificar_reset_necessario()
 
+        self.label_total.setText(f"Total de Famílias: {contar_familias()}")
+
     def verificar_reset_necessario(self):
         familias = carregar_familias()
         todas = all(f.get("sorteado", False) for f in familias)
         self.btn_resetar.setVisible(todas)
-
-    def resetar_sorteio(self):
-        familias = carregar_familias()
-        for f in familias:
-            f["sorteado"] = False
-        numeros = list(range(1, len(familias) + 1))
-        random.shuffle(numeros)
-        for f, num in zip(familias, numeros):
-            f["numero"] = num
-        salvar_familias(familias)
-        self.numero_sorteado = None
-        self.botao_finalizar.setEnabled(False)
-        self.atualizar_galeria()
 
     def criar_card_familia(self, familia):
         widget = QWidget()
@@ -255,7 +259,12 @@ class PainelPrincipal(QWidget):
         self.janela_sorteio = JanelaSorteio()
         self.janela_sorteio.sorteioRealizado.connect(self.on_sorteio_realizado)
         self.janela_sorteio.showFullScreen()
+        self.janela_sorteio.show()
+        self.botao_finalizar.setEnabled(True)
 
+    def armazenar_sorteio_temporario(self, numero):
+        self.numero_sorteado = numero
+    
     def on_sorteio_realizado(self, numero):
         self.numero_sorteado = numero
         self.botao_finalizar.setEnabled(True)
@@ -263,17 +272,24 @@ class PainelPrincipal(QWidget):
     def finalizar_sorteio_panel(self):
         if not self.numero_sorteado:
             return
+
         familias = carregar_familias()
-        for f in familias:
-            if str(f.get("numero")) == str(self.numero_sorteado):
-                f["sorteado"] = True
-                break
-        salvar_familias(familias)
-        self.numero_sorteado = None
-        self.botao_finalizar.setEnabled(False)
-        if self.janela_sorteio:
-            self.janela_sorteio.close()
-        self.atualizar_galeria()
+        familia_sorteada = next((f for f in familias if str(f.get("numero")) == str(self.numero_sorteado)), None)
+
+        if familia_sorteada:
+            familia_sorteada["sorteado"] = True
+            salvar_familias(familias)
+
+            salvar_sorteio(self.numero_sorteado)
+
+            self.numero_sorteado = None
+            self.botao_finalizar.setEnabled(False)
+
+            if self.janela_sorteio:
+                self.janela_sorteio.close()
+
+            self.atualizar_galeria()
+
 
     def abrir_edicao_familia(self, familia):
         self.janela_edicao = JanelaEditarFamilia(familia, self.atualizar_galeria)
@@ -291,7 +307,6 @@ class PainelPrincipal(QWidget):
         familias = [f for f in familias if f["numero"] != familia["numero"]]
         salvar_familias(familias)
         self.atualizar_galeria()
-
 
 def iniciar_painel():
     app = QApplication(sys.argv)

@@ -93,7 +93,8 @@ class JanelaAdicionarFamilia(QWidget):
             QMessageBox.information(self, "Foto Selecionada", "Foto selecionada com sucesso!")
 
     def salvar_familia(self):
-        nome = self.input_nome.text().strip()
+        nome_base = self.input_nome.text().strip()
+        nome = f"Família {nome_base}"
 
         if not nome or not self.caminho_foto:
             QMessageBox.warning(self, "Erro", "Por favor, preencha o nome e escolha uma foto.")
