@@ -12,10 +12,9 @@ class JanelaConfirmacao(QDialog):
         super().__init__(parent)
 
         self.info_text = info_text   # texto de sucesso (pode ser None)
-        self._estado   = "confirm"   # estados: "confirm" ou "info"
 
         # decoração e modal
-        self.setWindowTitle("Confirmar Ação")
+        self.setWindowTitle("Informação" if info_text else "Confirmar Ação")
         self.setModal(True)
         self.resize(400, 180)
         self.setWindowFlags(
@@ -54,16 +53,9 @@ class JanelaConfirmacao(QDialog):
         """)
 
         # === widget de mensagem ===
-        self.label = QLabel(texto)
+        self.label = QLabel(info_text if info_text else texto)
         self.label.setWordWrap(True)
         self.label.setAlignment(Qt.AlignCenter)
-
-        # === botões ===
-        self.btn_nao = QPushButton("❌ Não")
-        self.btn_nao.clicked.connect(self._on_nao)
-
-        self.btn_sim = QPushButton("✅ Sim")
-        self.btn_sim.clicked.connect(self._on_sim)
 
         # layout principal
         layout = QVBoxLayout(self)
@@ -73,8 +65,22 @@ class JanelaConfirmacao(QDialog):
 
         h = QHBoxLayout()
         h.addStretch(1)
-        h.addWidget(self.btn_nao)
-        h.addWidget(self.btn_sim)
+
+        if info_text:
+            # Se tiver info_text, mostra apenas o botão OK
+            self.btn_ok = QPushButton("OK")
+            self.btn_ok.clicked.connect(self.close)
+            h.addWidget(self.btn_ok)
+        else:
+            # Se não tiver info_text, mostra os botões Sim e Não
+            self.btn_nao = QPushButton("❌ Não")
+            self.btn_nao.clicked.connect(self._on_nao)
+            h.addWidget(self.btn_nao)
+
+            self.btn_sim = QPushButton("✅ Sim")
+            self.btn_sim.clicked.connect(self._on_sim)
+            h.addWidget(self.btn_sim)
+
         h.addStretch(1)
         layout.addLayout(h)
 
@@ -91,34 +97,6 @@ class JanelaConfirmacao(QDialog):
         self.close()
 
     def _on_sim(self):
-        if self._estado == "confirm":
-            # dispara o sinal para exclusão
-            self.confirmado.emit()
-
-            if self.info_text:
-                # passa para estado "info"
-                self._mostrar_info(self.info_text)
-            else:
-                self.close()
-        else:
-            # usuário já viu a mensagem final, agora fecha
-            self.close()
-
-    def _mostrar_info(self, texto_info):
-        # troca título e texto
-        self.setWindowTitle("Informação")
-        self.label.setText(texto_info)
-
-        # esconde botões antigos
-        self.btn_nao.hide()
-        self.btn_sim.hide()
-
-        # cria botão OK
-        self.btn_ok = QPushButton("OK")
-        self.btn_ok.clicked.connect(self.close)
-
-        # adiciona no layout
-        self.layout().addWidget(self.btn_ok, alignment=Qt.AlignCenter)
-
-        # atualiza estado
-        self._estado = "info"
+        # dispara o sinal para exclusão
+        self.confirmado.emit()
+        self.close()

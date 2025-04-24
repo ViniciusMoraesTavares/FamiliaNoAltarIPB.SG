@@ -129,8 +129,8 @@ class JanelaAdicionarFamilia(QWidget):
         with open(DADOS_PATH, "w", encoding="utf-8") as f:
             json.dump(familias, f, indent=4, ensure_ascii=False)
 
-        # Emite o sinal para notificar que a família foi adicionada
-        self.familia_adicionada.emit()
-
         QMessageBox.information(self, "Sucesso", f"Família '{nome}' adicionada com sucesso!")
+        
+        # Emite o sinal antes de fechar a janela
+        self.familia_adicionada.emit()
         self.close()

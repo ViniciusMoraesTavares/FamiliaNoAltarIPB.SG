@@ -4,9 +4,11 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QPixmap, QGuiApplication, QFont, QMovie
 from PySide6.QtCore import Qt, Signal, QTimer, QSize
-import json
 import os
 
+from .data_manager import DataManager
+from .widgets import TitleLabel, ImageContainer, LoadingOverlay
+from .styles import AppStyles
 
 class JanelaSorteio(QWidget):
     sorteioRealizado = Signal(str)
@@ -16,6 +18,8 @@ class JanelaSorteio(QWidget):
         self.setWindowTitle("Sorteio - Família no Altar")
         self.setStyleSheet("background-color: #ffffff;")
         self.setWindowFlags(Qt.FramelessWindowHint)
+        
+        self.data_manager = DataManager()
         self.init_ui()
 
     def init_ui(self):
@@ -24,110 +28,79 @@ class JanelaSorteio(QWidget):
         self.layout.setSpacing(20)
 
         # Título
-        titulo = QLabel("Família no Altar")
-        titulo.setFont(QFont("Arial", 40, QFont.Bold))
-        titulo.setAlignment(Qt.AlignCenter)
-        titulo.setStyleSheet("color: #00796B;")
+        titulo = TitleLabel("Família no Altar", size=40)
         self.layout.addWidget(titulo)
 
         # Subtítulo
-        self.subtitulo = QLabel("Última família no Altar")
-        self.subtitulo.setFont(QFont("Arial", 24))
-        self.subtitulo.setAlignment(Qt.AlignCenter)
-        self.subtitulo.setStyleSheet("color: #00796B;")
+        self.subtitulo = TitleLabel("Última família no Altar", size=24)
         self.layout.addWidget(self.subtitulo)
 
         # Imagem e nome da última sorteada
-        self.imagem_ultima = QLabel(alignment=Qt.AlignCenter)
-        self.imagem_ultima.setStyleSheet("border-radius: 20px;")
+        self.imagem_ultima = ImageContainer(self)
+        self.imagem_ultima.image_label.setFixedSize(600, 600)
         self.layout.addWidget(self.imagem_ultima)
 
-        self.nome_ultima = QLabel()
-        self.nome_ultima.setFont(QFont("Arial", 22, QFont.Bold))
-        self.nome_ultima.setAlignment(Qt.AlignCenter)
-        self.nome_ultima.setStyleSheet("color: #004d40;")
+        self.nome_ultima = TitleLabel("", size=22, color="#004d40")
         self.layout.addWidget(self.nome_ultima)
 
         # Mensagem de erro
         self.mensagem_label = QLabel()
-        self.mensagem_label.setFont(QFont("Arial", 20))
+        self.mensagem_label.setFont(QFont("Segoe UI", 20))
         self.mensagem_label.setStyleSheet("color: red;")
         self.mensagem_label.setAlignment(Qt.AlignCenter)
         self.mensagem_label.hide()
         self.layout.addWidget(self.mensagem_label)
 
         # Imagem e nome da família sorteada
-        self.imagem_label = QLabel(alignment=Qt.AlignCenter)
-        self.imagem_label.setStyleSheet("border-radius: 20px;")
+        self.imagem_label = ImageContainer(self)
+        self.imagem_label.image_label.setFixedSize(600, 600)
         self.layout.addWidget(self.imagem_label)
 
-        self.nome_label = QLabel()
-        self.nome_label.setFont(QFont("Arial", 32, QFont.Bold))
-        self.nome_label.setAlignment(Qt.AlignCenter)
-        self.nome_label.setStyleSheet("color: #00796B;")
+        self.nome_label = TitleLabel("", size=32)
         self.layout.addWidget(self.nome_label)
 
         self.layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
-        # Animação de loading como overlay
-        self.overlay_loading = QLabel(self)
-        self.overlay_loading.setStyleSheet("background-color: rgba(255, 255, 255, 180);")
-        self.overlay_loading.setAlignment(Qt.AlignCenter)
-        self.overlay_loading.setVisible(False)
-
-        self.loading_movie = QMovie("imagens/loading.gif")
-        self.loading_movie.setScaledSize(QSize(300, 300))
-        self.overlay_loading.setMovie(self.loading_movie)
-
-
         # Campo de número
         self.numero_input = QLineEdit()
         self.numero_input.setPlaceholderText("Número")
-        self.numero_input.setFont(QFont("Arial", 24))
+        self.numero_input.setFont(QFont("Segoe UI", 24))
         self.numero_input.setAlignment(Qt.AlignCenter)
         self.numero_input.setMaxLength(3)
         self.numero_input.setFixedWidth(200)
-        self.numero_input.setStyleSheet(""" 
-            QLineEdit {
-                padding: 10px;
-                font-size: 24px;
-                border: 2px solid #00796B;
-                border-radius: 8px;
-                background-color: #ffffff;
-            }
-        """)
+        self.numero_input.setStyleSheet(AppStyles.input_style())
         self.numero_input.returnPressed.connect(self.validar_numero_para_sorteio)
         self.layout.addWidget(self.numero_input, alignment=Qt.AlignHCenter | Qt.AlignBottom)
 
         self.setLayout(self.layout)
+        
+        # Loading overlay
+        self.loading_overlay = LoadingOverlay(self)
+        self.loading_overlay.resize(self.size())
+
         self.move_to_second_screen()
         self.showFullScreen()
-        self.overlay_loading.resize(self.size())
-        self.overlay_loading.raise_()
-
 
         # Atualiza o último sorteio na tela
         self.atualizar_ultimo_sorteado()
 
     def atualizar_ultimo_sorteado(self):
-        numero = carregar_ultimo_sorteio()
+        numero = self.data_manager.carregar_ultimo_sorteio()
         if not numero:
-            self.imagem_ultima.clear()
+            self.imagem_ultima.set_image(None)
             self.nome_ultima.setText("Nenhuma família sorteada ainda.")
             return
 
-        familias = carregar_familias()
+        familias = self.data_manager.carregar_familias()
         familia = next((f for f in familias if str(f.get("numero")) == str(numero)), None)
         if familia:
             foto_path = familia.get("foto", "")
             if os.path.exists(foto_path):
                 pixmap = QPixmap(foto_path).scaled(600, 600, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                self.imagem_ultima.setPixmap(pixmap)
-            else:
-                self.imagem_ultima.setText("Foto não encontrada")
+                self.imagem_ultima.set_image(pixmap)
             self.nome_ultima.setText(familia.get("nome", "Família Sem Nome"))
         else:
-            self.imagem_ultima.clear()
+            self.imagem_ultima.set_image(None)
             self.nome_ultima.setText("Família não encontrada.")
 
     def validar_numero_para_sorteio(self):
@@ -138,7 +111,7 @@ class JanelaSorteio(QWidget):
             self.exibir_mensagem("Digite um número válido.")
             return
 
-        familias = carregar_familias()
+        familias = self.data_manager.carregar_familias()
         familia = next((f for f in familias if str(f.get("numero")) == numero), None)
 
         if not familia:
@@ -149,39 +122,29 @@ class JanelaSorteio(QWidget):
             self.exibir_mensagem(f"A família número {numero} já foi sorteada.")
             return
 
-        self.overlay_loading.show()
-        self.loading_movie.start()
+        self.loading_overlay.show()
+        QTimer.singleShot(1000, lambda: self.realizar_sorteio(familia))
 
-        QTimer.singleShot(1000, self.realizar_sorteio)
+    def realizar_sorteio(self, familia):
+        self.loading_overlay.hide()
 
-    def realizar_sorteio(self):
-        self.overlay_loading.hide() 
-        self.loading_movie.stop()
+        # Limpa a seção da última família sorteada
+        self.imagem_ultima.hide()
+        self.nome_ultima.hide()
 
-        numero = self.numero_input.text().strip()
-        familias = carregar_familias()
-        familia = next((f for f in familias if str(f.get("numero")) == numero), None)
-
-        if not familia:
-            return
-
+        # Mostra a nova família sorteada
         foto_path = familia.get("foto", "")
         if os.path.exists(foto_path):
             pixmap = QPixmap(foto_path).scaled(600, 600, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            self.imagem_label.setPixmap(pixmap)
-        else:
-            self.imagem_label.setText("Foto não encontrada")
-            self.imagem_label.setStyleSheet("font-size: 20px; color: red;")
+            self.imagem_label.set_image(pixmap)
 
         self.nome_label.setText(familia.get("nome", "Família Sem Nome"))
 
         # Atualiza o título para mostrar que a família foi sorteada
         self.subtitulo.setText("Família no Altar da Semana")
-        self.imagem_ultima.clear()
-        self.nome_ultima.clear()
 
         # Envia o número sorteado ao painel
-        self.sorteioRealizado.emit(numero)
+        self.sorteioRealizado.emit(str(familia.get("numero")))
 
     def exibir_mensagem(self, texto):
         self.mensagem_label.setText(texto)
@@ -194,22 +157,8 @@ class JanelaSorteio(QWidget):
             second = screens[1]
             geom = second.geometry()
             self.move(geom.left(), geom.top())
-
-# Funções auxiliares (fora da classe)
-def carregar_familias():
-    try:
-        with open("dados/familias.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return []
-
-def carregar_ultimo_sorteio():
-    try:
-        with open("dados/sorteio.json", "r", encoding="utf-8") as f:
-            dados = json.load(f)
-            return dados.get("ultimo_sorteado", None)
-    except FileNotFoundError:
-        return None
-    except json.JSONDecodeError:
-        print("Erro ao decodificar o arquivo sorteio.json")
-        return None
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.loading_overlay:
+            self.loading_overlay.resize(self.size())

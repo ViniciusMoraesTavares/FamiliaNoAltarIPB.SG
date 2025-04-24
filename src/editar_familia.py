@@ -77,5 +77,9 @@ class JanelaEditarFamilia(QWidget):
                 break
 
         salvar_familias(familias)
-        self.callback_atualizar()
+        
+        # Chama o callback antes de fechar a janela
+        if self.callback_atualizar:
+            self.callback_atualizar()
+            
         self.close()
