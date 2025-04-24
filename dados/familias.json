@@ -4,13 +4,15 @@
         "numero": 2,
         "nome": "familia 3",
         "foto": "imagens/familias/aa0ab5e5.png",
-        "sorteado": false
+        "sorteado": false,
+        "data_sorteio": "24/04/2025"
     },
     {
         "id": 8,
         "numero": 1,
         "nome": "moraes tavares",
         "foto": "imagens/familias/9d150079.jpeg",
-        "sorteado": false
+        "sorteado": true,
+        "data_sorteio": "24/04/2025"
     }
 ]

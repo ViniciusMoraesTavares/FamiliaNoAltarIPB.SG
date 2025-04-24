@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QPixmap, QFont
 from PySide6.QtCore import Qt
 import sys, os, random
+from datetime import datetime
 
 from src.adicionar_familia    import JanelaAdicionarFamilia
 from src.sorteio_tela          import JanelaSorteio
@@ -116,11 +117,11 @@ class PainelPrincipal(QWidget):
         self.atualizar_galeria()
 
     def resetar_sorteio_callback(self):
-        resetar_sorteio()  # Chama a função do módulo resetar.py
-        self.atualizar_galeria()  # Atualiza a galeria após resetar
-        self.botao_finalizar.setEnabled(False)  # Desabilita o botão de finalizar sorteio
-        self.numero_sorteado = None  # Reseta o número sorteado
-        self.verificar_reset_necessario()  # Verifica se o botão de resetar deve ser exibido
+        resetar_sorteio()
+        self.atualizar_galeria()  
+        self.botao_finalizar.setEnabled(False)  
+        self.numero_sorteado = None  
+        self.verificar_reset_necessario()  
         
 
     def estilo_botao_principal(self):
@@ -203,6 +204,8 @@ class PainelPrincipal(QWidget):
         nome_label = QLabel(familia.get("nome", "Sem Nome"))
         nome_label.setAlignment(Qt.AlignCenter)
         nome_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #444;")
+
+
         numero_label = QLabel(f"🎟️ Número: {familia.get('numero', '-')}") 
         numero_label.setAlignment(Qt.AlignCenter)
         numero_label.setStyleSheet("color: #555; font-size: 14px;")
@@ -210,6 +213,14 @@ class PainelPrincipal(QWidget):
         status = "✅ Sorteado" if familia.get("sorteado") else "⏳ Aguardando"
         status_label = QLabel(status)
         status_label.setAlignment(Qt.AlignCenter)
+
+        data_sorteio = familia.get("data_sorteio", "")
+        if familia.get("sorteado") and data_sorteio:
+            data_label = QLabel(f"📅 Sorteado em: {data_sorteio}")
+            data_label.setAlignment(Qt.AlignCenter)
+            data_label.setStyleSheet("color: #666; font-size: 13px;")
+            layout.addWidget(data_label)
+
         status_label.setStyleSheet(
             "color: green;" if familia.get("sorteado") else "color: #888; font-style: italic;"
         )
@@ -278,8 +289,9 @@ class PainelPrincipal(QWidget):
 
         if familia_sorteada:
             familia_sorteada["sorteado"] = True
-            salvar_familias(familias)
+            familia_sorteada["data_sorteio"] = datetime.now().strftime("%d/%m/%Y")
 
+            salvar_familias(familias)
             salvar_sorteio(self.numero_sorteado)
 
             self.numero_sorteado = None
@@ -290,6 +302,9 @@ class PainelPrincipal(QWidget):
 
             self.atualizar_galeria()
 
+        if familia_sorteada:
+            familia_sorteada["sorteado"] = True
+            familia_sorteada["data_sorteio"] = datetime.now().strftime("%d/%m/%Y")
 
     def abrir_edicao_familia(self, familia):
         self.janela_edicao = JanelaEditarFamilia(familia, self.atualizar_galeria)

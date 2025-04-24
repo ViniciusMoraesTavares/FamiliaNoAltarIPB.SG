@@ -9,7 +9,7 @@ import os
 
 
 class JanelaSorteio(QWidget):
-    sorteioRealizado = Signal(str)  # Sinal emitido com o número sorteado
+    sorteioRealizado = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -69,13 +69,16 @@ class JanelaSorteio(QWidget):
 
         self.layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
-        # Animação de loading
-        self.loading_label = QLabel(alignment=Qt.AlignCenter)
-        self.loading_movie = QMovie("dados/loading.gif")
-        self.loading_movie.setScaledSize(QSize(100, 100))
-        self.loading_label.setMovie(self.loading_movie)
-        self.loading_label.hide()
-        self.layout.addWidget(self.loading_label)
+        # Animação de loading como overlay
+        self.overlay_loading = QLabel(self)
+        self.overlay_loading.setStyleSheet("background-color: rgba(255, 255, 255, 180);")
+        self.overlay_loading.setAlignment(Qt.AlignCenter)
+        self.overlay_loading.setVisible(False)
+
+        self.loading_movie = QMovie("imagens/loading.gif")
+        self.loading_movie.setScaledSize(QSize(300, 300))
+        self.overlay_loading.setMovie(self.loading_movie)
+
 
         # Campo de número
         self.numero_input = QLineEdit()
@@ -99,6 +102,9 @@ class JanelaSorteio(QWidget):
         self.setLayout(self.layout)
         self.move_to_second_screen()
         self.showFullScreen()
+        self.overlay_loading.resize(self.size())
+        self.overlay_loading.raise_()
+
 
         # Atualiza o último sorteio na tela
         self.atualizar_ultimo_sorteado()
@@ -115,7 +121,7 @@ class JanelaSorteio(QWidget):
         if familia:
             foto_path = familia.get("foto", "")
             if os.path.exists(foto_path):
-                pixmap = QPixmap(foto_path).scaled(300, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                pixmap = QPixmap(foto_path).scaled(600, 600, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 self.imagem_ultima.setPixmap(pixmap)
             else:
                 self.imagem_ultima.setText("Foto não encontrada")
@@ -143,12 +149,13 @@ class JanelaSorteio(QWidget):
             self.exibir_mensagem(f"A família número {numero} já foi sorteada.")
             return
 
-        self.loading_label.show()
+        self.overlay_loading.show()
         self.loading_movie.start()
+
         QTimer.singleShot(1000, self.realizar_sorteio)
 
     def realizar_sorteio(self):
-        self.loading_label.hide()
+        self.overlay_loading.hide() 
         self.loading_movie.stop()
 
         numero = self.numero_input.text().strip()

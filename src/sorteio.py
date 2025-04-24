@@ -1,5 +1,3 @@
-# src/sorteio.py
-
 import json
 import random
 
@@ -23,12 +21,11 @@ def sortear_familia():
     disponiveis = [f for f in familias if not f.get("sorteado", False)]
 
     if not disponiveis:
-        return None  # Todas as famílias já foram sorteadas
+        return None 
 
     sorteada = random.choice(disponiveis)
     sorteada["sorteado"] = True
 
-    # Atualiza a lista de famílias
     for i, f in enumerate(familias):
         if f["id"] == sorteada["id"]:
             familias[i] = sorteada
