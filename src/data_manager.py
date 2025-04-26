@@ -17,32 +17,10 @@ class DataManager:
     def __init__(self):
         self.familias_file = "dados/familias.json"
         self.sorteio_file = "dados/sorteio.json"
-        self.backup_dir = "dados/backup"
         
-        # Criar diretórios se não existirem
         os.makedirs("dados", exist_ok=True)
-        os.makedirs(self.backup_dir, exist_ok=True)
-    
-    def _criar_backup(self, arquivo):
-        """Cria um backup do arquivo antes de modificá-lo"""
-        if os.path.exists(arquivo):
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = os.path.join(
-                self.backup_dir,
-                f"{os.path.basename(arquivo)}.{timestamp}.bak"
-            )
-            shutil.copy2(arquivo, backup_path)
-            
-            # Manter apenas os últimos 5 backups
-            backups = sorted([
-                f for f in os.listdir(self.backup_dir)
-                if f.startswith(os.path.basename(arquivo))
-            ])
-            for old_backup in backups[:-5]:
-                os.remove(os.path.join(self.backup_dir, old_backup))
     
     def carregar_familias(self, force_reload=False):
-        """Carrega as famílias do arquivo, usando cache quando possível"""
         if self._familias_cache is not None and not force_reload:
             return self._familias_cache
             
@@ -62,9 +40,7 @@ class DataManager:
             return []
     
     def salvar_familias(self, familias):
-        """Salva as famílias no arquivo com backup"""
         try:
-            self._criar_backup(self.familias_file)
             with open(self.familias_file, "w", encoding="utf-8") as f:
                 json.dump(familias, f, ensure_ascii=False, indent=2)
             self._familias_cache = familias
@@ -74,7 +50,6 @@ class DataManager:
             return False
     
     def carregar_ultimo_sorteio(self, force_reload=False):
-        """Carrega o último sorteio do arquivo, usando cache quando possível"""
         if self._ultimo_sorteio_cache is not None and not force_reload:
             return self._ultimo_sorteio_cache
             
@@ -94,9 +69,7 @@ class DataManager:
             return None
     
     def salvar_sorteio(self, numero):
-        """Salva o número sorteado com backup"""
         try:
-            self._criar_backup(self.sorteio_file)
             with open(self.sorteio_file, "w", encoding="utf-8") as f:
                 json.dump({"ultimo_sorteado": numero}, f)
             self._ultimo_sorteio_cache = numero
@@ -106,15 +79,12 @@ class DataManager:
             return False
     
     def resetar_sorteio(self):
-        """Reseta o estado de sorteio de todas as famílias e redistribui os números"""
         familias = self.carregar_familias()
         total_familias = len(familias)
         
-        # Gera uma lista de números de 1 até o total de famílias
         numeros_disponiveis = list(range(1, total_familias + 1))
         random.shuffle(numeros_disponiveis)
         
-        # Atribui os novos números às famílias
         for i, familia in enumerate(familias):
             familia["sorteado"] = False
             familia["numero"] = numeros_disponiveis[i]
@@ -123,7 +93,6 @@ class DataManager:
         
         if self.salvar_familias(familias):
             if os.path.exists(self.sorteio_file):
-                self._criar_backup(self.sorteio_file)
                 os.remove(self.sorteio_file)
             self._ultimo_sorteio_cache = None
             return True

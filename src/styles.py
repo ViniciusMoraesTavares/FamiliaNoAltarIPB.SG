@@ -2,7 +2,6 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QGraphicsDropShadowEffect
 
 class AppStyles:
-    # Colors
     PRIMARY_COLOR = "#4CAF50"
     PRIMARY_DARK = "#388E3C"
     PRIMARY_LIGHT = "#A5D6A7"

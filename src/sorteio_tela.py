@@ -27,15 +27,12 @@ class JanelaSorteio(QWidget):
         self.layout.setContentsMargins(50, 30, 50, 30)
         self.layout.setSpacing(20)
 
-        # Título
         titulo = TitleLabel("Família no Altar", size=40)
         self.layout.addWidget(titulo)
 
-        # Subtítulo
         self.subtitulo = TitleLabel("Última família no Altar", size=24)
         self.layout.addWidget(self.subtitulo)
 
-        # Imagem e nome da última sorteada
         self.imagem_ultima = ImageContainer(self)
         self.imagem_ultima.image_label.setFixedSize(600, 600)
         self.layout.addWidget(self.imagem_ultima)
@@ -43,7 +40,6 @@ class JanelaSorteio(QWidget):
         self.nome_ultima = TitleLabel("", size=22, color="#004d40")
         self.layout.addWidget(self.nome_ultima)
 
-        # Mensagem de erro
         self.mensagem_label = QLabel()
         self.mensagem_label.setFont(QFont("Segoe UI", 20))
         self.mensagem_label.setStyleSheet("color: red;")
@@ -51,7 +47,6 @@ class JanelaSorteio(QWidget):
         self.mensagem_label.hide()
         self.layout.addWidget(self.mensagem_label)
 
-        # Imagem e nome da família sorteada
         self.imagem_label = ImageContainer(self)
         self.imagem_label.image_label.setFixedSize(600, 600)
         self.layout.addWidget(self.imagem_label)
@@ -61,7 +56,6 @@ class JanelaSorteio(QWidget):
 
         self.layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
-        # Campo de número
         self.numero_input = QLineEdit()
         self.numero_input.setPlaceholderText("Número")
         self.numero_input.setFont(QFont("Segoe UI", 24))
@@ -74,14 +68,12 @@ class JanelaSorteio(QWidget):
 
         self.setLayout(self.layout)
         
-        # Loading overlay
         self.loading_overlay = LoadingOverlay(self)
         self.loading_overlay.resize(self.size())
 
         self.move_to_second_screen()
         self.showFullScreen()
 
-        # Atualiza o último sorteio na tela
         self.atualizar_ultimo_sorteado()
 
     def atualizar_ultimo_sorteado(self):
@@ -128,11 +120,9 @@ class JanelaSorteio(QWidget):
     def realizar_sorteio(self, familia):
         self.loading_overlay.hide()
 
-        # Limpa a seção da última família sorteada
         self.imagem_ultima.hide()
         self.nome_ultima.hide()
 
-        # Mostra a nova família sorteada
         foto_path = familia.get("foto", "")
         if os.path.exists(foto_path):
             pixmap = QPixmap(foto_path).scaled(600, 600, Qt.KeepAspectRatio, Qt.SmoothTransformation)
@@ -140,10 +130,8 @@ class JanelaSorteio(QWidget):
 
         self.nome_label.setText(familia.get("nome", "Família Sem Nome"))
 
-        # Atualiza o título para mostrar que a família foi sorteada
         self.subtitulo.setText("Família no Altar da Semana")
 
-        # Envia o número sorteado ao painel
         self.sorteioRealizado.emit(str(familia.get("numero")))
 
     def exibir_mensagem(self, texto):

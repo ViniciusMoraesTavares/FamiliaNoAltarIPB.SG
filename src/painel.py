@@ -21,7 +21,7 @@ from src.resetar import resetar_sorteio
 from src.data_manager import DataManager
 from src.widgets import (
     NotificationWidget, AutoSaveBanner, LoadingOverlay,
-    FamilyCard, SearchBar, FilterButton, TitleLabel
+    FamilyCard, SearchBar, FilterButton, TitleLabel, FullscreenImageViewer
 )
 from src.styles import AppStyles
 
@@ -40,7 +40,6 @@ class LoadingSpinner(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         
-        # Loading animation
         self.spinner_label = QLabel()
         self.spinner_label.setAlignment(Qt.AlignCenter)
         self.spinner_movie = QMovie("imagens/loading.gif")
@@ -48,7 +47,6 @@ class LoadingSpinner(QFrame):
         self.spinner_label.setMovie(self.spinner_movie)
         layout.addWidget(self.spinner_label)
         
-        # Loading text
         text_label = QLabel("Carregando...")
         text_label.setAlignment(Qt.AlignCenter)
         text_label.setStyleSheet("""
@@ -82,7 +80,6 @@ class JanelaSalvamento(QFrame):
             }
         """)
         
-        # Add shadow effect
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(20)
         shadow.setColor(QColor(0, 0, 0, 50))
@@ -93,13 +90,11 @@ class JanelaSalvamento(QFrame):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
         
-        # Ícone de salvamento
         icon_label = QLabel("💾")
         icon_label.setFont(QFont("Segoe UI", 24))
         icon_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(icon_label)
         
-        # Mensagem
         msg_label = QLabel("Salvando todas as alterações...")
         msg_label.setStyleSheet("""
             QLabel {
@@ -111,7 +106,6 @@ class JanelaSalvamento(QFrame):
         msg_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(msg_label)
         
-        # Loading spinner
         spinner = QLabel("⌛")
         spinner.setFont(QFont("Segoe UI", 16))
         spinner.setAlignment(Qt.AlignCenter)
@@ -122,7 +116,6 @@ class JanelaSalvamento(QFrame):
 
     def showEvent(self, event):
         super().showEvent(event)
-        # Centralizar a janela no pai
         if self.parent():
             parent_rect = self.parent().geometry()
             x = parent_rect.center().x() - self.width() // 2
@@ -194,7 +187,6 @@ class PainelPrincipal(QWidget):
         self.janela_sorteio = None
         self.numero_sorteado = None
 
-        # Initialize widgets
         self.notification = NotificationWidget(self)
         self.auto_save_banner = AutoSaveBanner(self)
         self.loading_overlay = LoadingOverlay(self)
@@ -205,7 +197,6 @@ class PainelPrincipal(QWidget):
     def _on_nova_familia(self):
         self.filtro_atual = "todas"
         self.search_input.clear()
-        # Força recarregar os dados
         self.data_manager.carregar_familias(force_reload=True)
         self.notification.show_message("Família adicionada com sucesso!", "success")
         self.atualizar_galeria()    
@@ -214,17 +205,13 @@ class PainelPrincipal(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-
-        # Add auto-save banner at the top
         main_layout.addWidget(self.auto_save_banner)
 
-        # Content container with padding
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
         content_layout.setContentsMargins(30, 30, 30, 30)
         content_layout.setSpacing(20)
 
-        # Header with shadow
         header = QFrame()
         header.setStyleSheet("""
             QFrame {
@@ -237,15 +224,12 @@ class PainelPrincipal(QWidget):
         header_layout = QVBoxLayout(header)
         header_layout.setContentsMargins(30, 20, 30, 20)
 
-        # Title
         titulo = TitleLabel("Família no Altar - IPB.SG", size=28)
         header_layout.addWidget(titulo)
 
-        # Action buttons
         botoes_layout = QHBoxLayout()
         botoes_layout.setSpacing(15)
 
-        # Create action buttons
         btn_adicionar = QPushButton("➕ Adicionar Família")
         btn_adicionar.clicked.connect(self.janela_adicionar.show)
         btn_adicionar.setStyleSheet(AppStyles.button_style())
@@ -269,7 +253,6 @@ class PainelPrincipal(QWidget):
         self.btn_resetar.setStyleSheet(AppStyles.button_style())
         self.btn_resetar.setVisible(False)
 
-        # Add buttons to layout
         for btn in [btn_adicionar, btn_sorteio, self.btn_fechar_sorteio, 
                    self.botao_finalizar, self.btn_resetar]:
             btn.setMinimumWidth(150)
@@ -280,7 +263,6 @@ class PainelPrincipal(QWidget):
 
         main_layout.addWidget(header)
 
-        # Search and filters section
         search_container = QFrame()
         search_container.setStyleSheet("""
             QFrame {
@@ -292,7 +274,6 @@ class PainelPrincipal(QWidget):
         search_layout.setContentsMargins(20, 15, 20, 15)
         search_layout.setSpacing(15)
 
-        # Filter buttons
         self.filter_buttons = []
         filter_group = QButtonGroup(self)
         filter_group.setExclusive(True)
@@ -308,15 +289,12 @@ class PainelPrincipal(QWidget):
             self.filter_buttons.append(btn)
             search_layout.addWidget(btn)
 
-        # Set the "Todas" button as checked by default
         self.filter_buttons[0].setChecked(True)
 
-        # Search bar
         self.search_input = SearchBar()
         self.search_input.textChanged.connect(self.atualizar_busca)
         search_layout.addWidget(self.search_input)
 
-        # Total families label
         self.label_total = QLabel()
         self.label_total.setText(f"Total de Famílias: {contar_familias()}")
         self.label_total.setStyleSheet("font-size: 14px; color: #616161; font-weight: bold;")
@@ -324,7 +302,6 @@ class PainelPrincipal(QWidget):
 
         content_layout.addWidget(search_container)
 
-        # Scrollable content area
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setStyleSheet("""
@@ -340,18 +317,15 @@ class PainelPrincipal(QWidget):
 
         main_layout.addWidget(content_widget)
 
-        # Add notification widget (it will be hidden by default)
         self.notification.setParent(self)
         self.notification.move(30, self.height() - 80)
 
-        # Add loading overlay
         self.loading_overlay.setParent(self)
         
         self.atualizar_galeria()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        # Update notification and loading spinner positions
         self.notification.move(30, self.height() - 80)
         self.loading_overlay.resize(self.size())
 
@@ -431,9 +405,11 @@ class PainelPrincipal(QWidget):
             card = FamilyCard(familia)
             card.edit_clicked.connect(self.abrir_edicao_familia)
             card.delete_clicked.connect(self.excluir_familia)
+
+            card.image_clicked.connect(self.exibir_imagem_fullscreen)
+
             layout_grade.addWidget(card, i // 4, i % 4)
 
-        # Add stretch to bottom if needed
         if len(familias) < 4:
             layout_grade.setRowStretch(1, 1)
 
@@ -441,6 +417,10 @@ class PainelPrincipal(QWidget):
         self.verificar_reset_necessario()
         self.label_total.setText(f"Total de Famílias: {contar_familias()}")
         self.hideLoading()
+
+    def exibir_imagem_fullscreen(self, imagem_url):
+        fullscreen_widget = FullscreenImageViewer(imagem_url)
+        fullscreen_widget.show()  
 
     def verificar_reset_necessario(self):
         familias = self.data_manager.carregar_familias()
@@ -456,7 +436,6 @@ class PainelPrincipal(QWidget):
             }
         """)
 
-        # Add shadow effect
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(15)
         shadow.setColor(QColor(0, 0, 0, 25))
@@ -467,7 +446,6 @@ class PainelPrincipal(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
 
-        # Image container with rounded corners
         img_container = QFrame()
         img_container.setStyleSheet("""
             QFrame {
@@ -504,7 +482,6 @@ class PainelPrincipal(QWidget):
         img_layout.addWidget(img_label, alignment=Qt.AlignCenter)
         layout.addWidget(img_container)
 
-        # Family info
         nome_label = QLabel(familia.get("nome", "Sem Nome"))
         nome_label.setAlignment(Qt.AlignCenter)
         nome_label.setStyleSheet("""
@@ -526,7 +503,6 @@ class PainelPrincipal(QWidget):
         """)
         layout.addWidget(numero_label)
 
-        # Status badge
         status_container = QFrame()
         status_container.setStyleSheet("""
             QFrame {
@@ -560,7 +536,6 @@ class PainelPrincipal(QWidget):
             """)
             layout.addWidget(data_label)
 
-        # Action buttons
         botoes_layout = QHBoxLayout()
         botoes_layout.setSpacing(4)
         botoes_layout.setContentsMargins(0, 0, 0, 0)
@@ -603,7 +578,6 @@ class PainelPrincipal(QWidget):
             }
         """)
 
-        # Centralizar os botões
         botoes_container = QWidget()
         botoes_container.setLayout(botoes_layout)
         botoes_layout.addWidget(editar_btn)
@@ -620,7 +594,6 @@ class PainelPrincipal(QWidget):
         self.janela_sorteio = JanelaSorteio()
         self.janela_sorteio.sorteioRealizado.connect(self.on_sorteio_realizado)
         
-        # Primeiro mostra a janela e depois maximiza
         self.janela_sorteio.show()
         QTimer.singleShot(100, self.janela_sorteio.showFullScreen)
         
@@ -672,12 +645,10 @@ class PainelPrincipal(QWidget):
                         self.janela_sorteio.close()
                         self.janela_sorteio = None
 
-                    # Mostrar janela de confirmação apenas com OK para o sorteio
                     msg = f"Família {familia_sorteada['nome']} sorteada com sucesso!"
                     dlg = JanelaConfirmacao("", parent=self, info_text=msg)
                     dlg.exec()
                     
-                    # Forçar atualização da galeria após o diálogo
                     QTimer.singleShot(100, self.atualizar_galeria)
                     self.auto_save_banner.show_saved()
                 else:
@@ -689,7 +660,6 @@ class PainelPrincipal(QWidget):
 
     def abrir_edicao_familia(self, familia):
         def callback_atualizacao():
-            # Força recarregar os dados
             self.data_manager.carregar_familias(force_reload=True)
             self.atualizar_galeria()
             
@@ -711,6 +681,14 @@ class PainelPrincipal(QWidget):
     def _executar_exclusao_impl(self, familia):
         familias = self.data_manager.carregar_familias()
         familias = [f for f in familias if f["numero"] != familia["numero"]]
+        
+        foto_path = familia.get("foto", "")
+        if foto_path:
+            try:
+                if os.path.exists(foto_path):
+                    os.remove(foto_path)
+            except Exception as e:
+                self.notification.show_message(f"Erro ao deletar foto: {str(e)}", "error")
         
         if self.data_manager.salvar_familias(familias):
             self.notification.show_message(f"Família {familia['nome']} removida com sucesso!", "success")

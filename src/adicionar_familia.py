@@ -56,29 +56,24 @@ class JanelaAdicionarFamilia(QWidget):
         """)
         self.resize(400, 250)
         
-        # Layout principal
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        # Título da janela
         self.title = QLabel("Adicionar Nova Família")
         self.title.setAlignment(Qt.AlignCenter)
         self.title.setFont(QFont("Arial", 18, QFont.Bold))
         self.title.setStyleSheet("color: #3D6D43;")
         self.layout.addWidget(self.title)
 
-        # Campo para o nome da família
         self.label_nome = QLabel("Nome da Família:")
         self.input_nome = QLineEdit()
         self.layout.addWidget(self.label_nome)
         self.layout.addWidget(self.input_nome)
 
-        # Botão para escolher a foto
         self.botao_escolher_foto = QPushButton("Escolher Foto")
         self.botao_escolher_foto.clicked.connect(self.escolher_foto)
         self.layout.addWidget(self.botao_escolher_foto)
 
-        # Botão para salvar a família
         self.botao_salvar = QPushButton("Salvar Família")
         self.botao_salvar.clicked.connect(self.salvar_familia)
         self.layout.addWidget(self.botao_salvar)
@@ -100,7 +95,6 @@ class JanelaAdicionarFamilia(QWidget):
             QMessageBox.warning(self, "Erro", "Por favor, preencha o nome e escolha uma foto.")
             return
 
-        # Criar novo ID
         if os.path.exists(DADOS_PATH):
             with open(DADOS_PATH, "r", encoding="utf-8") as f:
                 familias = json.load(f)
@@ -110,7 +104,6 @@ class JanelaAdicionarFamilia(QWidget):
         novo_id = max([f["id"] for f in familias], default=0) + 1
         numero = max([f["numero"] for f in familias], default=0) + 1
 
-        # Salvar a imagem na pasta
         extensao = os.path.splitext(self.caminho_foto)[-1]
         novo_nome_arquivo = f"{uuid4().hex[:8]}{extensao}"
         caminho_destino = os.path.join(FOTOS_PATH, novo_nome_arquivo)
@@ -131,6 +124,5 @@ class JanelaAdicionarFamilia(QWidget):
 
         QMessageBox.information(self, "Sucesso", f"Família '{nome}' adicionada com sucesso!")
         
-        # Emite o sinal antes de fechar a janela
         self.familia_adicionada.emit()
         self.close()

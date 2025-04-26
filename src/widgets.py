@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QFrame, QVBoxLayout, QLabel, QHBoxLayout,
-    QPushButton, QWidget, QLineEdit, QToolButton
+    QPushButton, QWidget, QLineEdit, QToolButton, QDialog, QApplication
 )
 from PySide6.QtCore import Qt, Signal, QSize, QTimer, QPropertyAnimation, QEasingCurve, Property
 from PySide6.QtGui import QFont, QPixmap, QMovie, QColor
@@ -19,12 +19,10 @@ class NotificationWidget(QFrame):
             }
         """)
         
-        # Add shadow effect
         shadow = AppStyles.get_shadow_effect()
         shadow.setColor(QColor(0, 0, 0, 80))
         self.setGraphicsEffect(shadow)
         
-        # Layout
         layout = QHBoxLayout(self)
         layout.setContentsMargins(15, 0, 15, 0)
         
@@ -179,6 +177,12 @@ class ImageContainer(QFrame):
                 border-radius: 8px;
                 min-height: 120px;
             }
+            QLabel {
+                border-radius: 8px;
+            }
+            QLabel:hover {
+                background-color: #E8F5E9;
+            }
         """)
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -186,6 +190,7 @@ class ImageContainer(QFrame):
         self.image_label = QLabel()
         self.image_label.setFixedSize(120, 120)
         self.image_label.setAlignment(Qt.AlignCenter)
+        self.image_label.setCursor(Qt.PointingHandCursor)
         self.layout.addWidget(self.image_label, alignment=Qt.AlignCenter)
     
     def set_image(self, pixmap=None):
@@ -218,6 +223,7 @@ class ImageContainer(QFrame):
 class FamilyCard(BaseCard):
     edit_clicked = Signal(dict)
     delete_clicked = Signal(dict)
+    image_clicked = Signal(str)
     
     def __init__(self, familia, parent=None):
         super().__init__(parent)
@@ -225,105 +231,178 @@ class FamilyCard(BaseCard):
         self._setup_ui()
     
     def _setup_ui(self):
-        # Image container
         img_container = ImageContainer(self)
         caminho = self.familia.get("foto", "")
         if os.path.exists(caminho):
             pixmap = QPixmap(caminho).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             img_container.set_image(pixmap)
+        else:
+            img_container.clear()
+            
+        img_container.image_label.mousePressEvent = lambda event: self._on_image_clicked(caminho)
         self.layout.addWidget(img_container)
         
-        # Family name
         nome_label = QLabel(self.familia.get("nome", "Sem Nome"))
         nome_label.setAlignment(Qt.AlignCenter)
-        nome_label.setStyleSheet("""
-            QLabel {
-                font-size: 16px;
-                font-weight: bold;
-                color: #212121;
-            }
-        """)
+        nome_label.setStyleSheet("""QLabel { font-size: 16px; font-weight: bold; color: #212121; }""")
         self.layout.addWidget(nome_label)
         
-        # Family number
         numero_label = QLabel(f"Número: {self.familia.get('numero', '-')}")
         numero_label.setAlignment(Qt.AlignCenter)
-        numero_label.setStyleSheet("""
-            QLabel {
-                color: #757575;
-                font-size: 14px;
-            }
-        """)
+        numero_label.setStyleSheet("""QLabel { color: #757575; font-size: 14px; }""")
         self.layout.addWidget(numero_label)
         
-        # Status badge
         status = "Sorteado" if self.familia.get("sorteado") else "Aguardando"
         status_badge = StatusBadge(status, self.familia.get("sorteado"))
         self.layout.addWidget(status_badge)
         
-        # Draw date if available
         if self.familia.get("sorteado") and self.familia.get("data_sorteio"):
             data_label = QLabel(f"📅 {self.familia.get('data_sorteio')}")
             data_label.setAlignment(Qt.AlignCenter)
-            data_label.setStyleSheet("""
-                QLabel {
-                    color: #757575;
-                    font-size: 12px;
-                }
-            """)
+            data_label.setStyleSheet("""QLabel { color: #757575; font-size: 12px; }""")
             self.layout.addWidget(data_label)
         
-        # Action buttons
         botoes_layout = QHBoxLayout()
         botoes_layout.setSpacing(4)
         botoes_layout.setContentsMargins(0, 0, 0, 0)
         
         editar_btn = QPushButton("✎")
         editar_btn.clicked.connect(lambda: self.edit_clicked.emit(self.familia))
-        editar_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                padding: 8px;
-                border-radius: 6px;
-                font-size: 18px;
-                font-weight: bold;
-                min-width: 32px;
-                max-width: 32px;
-                font-family: 'Segoe UI Symbol', 'Segoe UI';
-            }
-            QPushButton:hover {
-                background-color: #43A047;
-            }
-        """)
+        editar_btn.setStyleSheet("""QPushButton { background-color: #4CAF50; color: white; border: none; padding: 8px; border-radius: 6px; font-size: 18px; font-weight: bold; min-width: 32px; max-width: 32px; font-family: 'Segoe UI Symbol', 'Segoe UI'; } QPushButton:hover { background-color: #43A047; }""")
         editar_btn.setFixedSize(32, 32)
         
         excluir_btn = QPushButton("🗑️")
         excluir_btn.clicked.connect(lambda: self.delete_clicked.emit(self.familia))
-        excluir_btn.setStyleSheet("""
+        excluir_btn.setStyleSheet("""QPushButton { background-color: #EF5350; color: white; border: none; padding: 8px; border-radius: 6px; font-size: 16px; font-weight: bold; min-width: 32px; max-width: 32px; } QPushButton:hover { background-color: #E53935; }""")
+        excluir_btn.setFixedSize(32, 32)
+        
+        botoes_layout.addWidget(editar_btn)
+        botoes_layout.addWidget(excluir_btn)
+        botoes_layout.addStretch()
+        botoes_container = QWidget()
+        botoes_container.setLayout(botoes_layout)
+        self.layout.addWidget(botoes_container, alignment=Qt.AlignCenter)
+
+    def _on_image_clicked(self, caminho_imagem):
+        if os.path.exists(caminho_imagem):
+            viewer = FullscreenImageViewer(caminho_imagem, self)
+            viewer.exec_()
+
+class FullscreenImageViewer(QDialog):
+    def __init__(self, image_path, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setModal(True)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: rgba(0, 0, 0, 0.7);
+            }
+            QLabel {
+                background-color: white;
+                border-radius: 8px;
+            }
             QPushButton {
                 background-color: #EF5350;
                 color: white;
                 border: none;
+                border-radius: 15px;
                 padding: 8px;
-                border-radius: 6px;
                 font-size: 16px;
                 font-weight: bold;
-                min-width: 32px;
-                max-width: 32px;
             }
             QPushButton:hover {
                 background-color: #E53935;
             }
         """)
-        excluir_btn.setFixedSize(32, 32)
-        
-        botoes_container = QWidget()
-        botoes_container.setLayout(botoes_layout)
-        botoes_layout.addWidget(editar_btn)
-        botoes_layout.addWidget(excluir_btn)
-        self.layout.addWidget(botoes_container, alignment=Qt.AlignCenter)
+
+        self.original_pixmap = QPixmap(image_path)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
+
+        close_btn = QPushButton("✕")
+        close_btn.setFixedSize(30, 30)
+        close_btn.clicked.connect(self.close_with_animation)
+        layout.addWidget(close_btn, alignment=Qt.AlignRight)
+
+        self.photo_container = QFrame()
+        self.photo_container.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 8px;
+            }
+        """)
+        photo_layout = QVBoxLayout(self.photo_container)
+        photo_layout.setContentsMargins(10, 10, 10, 10)
+
+        self.photo_label = QLabel()
+        self.photo_label.setAlignment(Qt.AlignCenter)
+        photo_layout.addWidget(self.photo_label)
+
+        layout.addWidget(self.photo_container, alignment=Qt.AlignCenter)
+
+        self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
+        self.fade_animation.setDuration(200)
+        self.fade_animation.setStartValue(0.0)
+        self.fade_animation.setEndValue(1.0)
+        self.fade_animation.setEasingCurve(QEasingCurve.OutCubic)
+
+        screen = QApplication.primaryScreen().geometry()
+        self.resize(screen.width(), screen.height())
+        self.move(0, 0)
+
+        self._update_image_size()
+        self.fade_animation.start()
+
+    def _update_image_size(self):
+        screen = QApplication.primaryScreen().geometry()
+        screen_width = screen.width()
+        screen_height = screen.height()
+
+        max_width = int(screen_width * 0.8)
+        max_height = int(screen_height * 0.8)
+
+        orig_width = self.original_pixmap.width()
+        orig_height = self.original_pixmap.height()
+
+        width_ratio = max_width / orig_width
+        height_ratio = max_height / orig_height
+        scale_factor = min(width_ratio, height_ratio)
+
+        new_width = int(orig_width * scale_factor)
+        new_height = int(orig_height * scale_factor)
+
+        scaled_pixmap = self.original_pixmap.scaled(
+            new_width, new_height,
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        )
+        self.photo_label.setPixmap(scaled_pixmap)
+        self.photo_container.setFixedSize(new_width + 20, new_height + 20)
+
+    def close_with_animation(self):
+        self.fade_animation.setDirection(QPropertyAnimation.Backward)
+        self.fade_animation.finished.connect(self.close)
+        self.fade_animation.start()
+
+    def mousePressEvent(self, event):
+        container_pos = self.photo_container.mapFrom(self, event.pos())
+        if not self.photo_container.rect().contains(container_pos):
+            self.close_with_animation()
+        else:
+            super().mousePressEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close_with_animation()
+        else:
+            super().keyPressEvent(event)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_image_size()
 
 class SearchBar(QFrame):
     textChanged = Signal(str)
@@ -405,7 +484,6 @@ class LoadingOverlay(QFrame):
         self.loading_label.setMovie(self.loading_movie)
         layout.addWidget(self.loading_label)
         
-        # Set visibility after initializing all attributes
         self.setVisible(False)
     
     def showEvent(self, event):
@@ -419,4 +497,123 @@ class LoadingOverlay(QFrame):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if self.parent():
-            self.resize(self.parent().size()) 
+            self.resize(self.parent().size())
+
+class PhotoViewer(QDialog):
+    def __init__(self, pixmap, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setModal(True)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: rgba(0, 0, 0, 0.7);
+            }
+            QLabel {
+                background-color: white;
+                border-radius: 8px;
+            }
+            QPushButton {
+                background-color: #EF5350;
+                color: white;
+                border: none;
+                border-radius: 15px;
+                padding: 8px;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #E53935;
+            }
+        """)
+
+        self.original_pixmap = pixmap
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
+
+        close_btn = QPushButton("✕")
+        close_btn.setFixedSize(30, 30)
+        close_btn.clicked.connect(self.close_with_animation)
+        layout.addWidget(close_btn, alignment=Qt.AlignRight)
+
+        self.photo_container = QFrame()
+        self.photo_container.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 8px;
+            }
+        """)
+        photo_layout = QVBoxLayout(self.photo_container)
+        photo_layout.setContentsMargins(10, 10, 10, 10)
+
+        self.photo_label = QLabel()
+        self.photo_label.setAlignment(Qt.AlignCenter)
+        photo_layout.addWidget(self.photo_label)
+
+        layout.addWidget(self.photo_container, alignment=Qt.AlignCenter)
+
+        self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
+        self.fade_animation.setDuration(200)
+        self.fade_animation.setStartValue(0.0)
+        self.fade_animation.setEndValue(1.0)
+        self.fade_animation.setEasingCurve(QEasingCurve.OutCubic)
+
+        screen = QApplication.primaryScreen().geometry()
+        self.resize(screen.width(), screen.height())
+        self.move(0, 0)
+
+        self._update_image_size()
+
+        self.fade_animation.start()
+
+    def _update_image_size(self):
+        screen = QApplication.primaryScreen().geometry()
+        screen_width = screen.width()
+        screen_height = screen.height()
+
+        max_width = int(screen_width * 0.8)
+        max_height = int(screen_height * 0.8)
+
+        orig_width = self.original_pixmap.width()
+        orig_height = self.original_pixmap.height()
+
+        width_ratio = max_width / orig_width
+        height_ratio = max_height / orig_height
+        scale_factor = min(width_ratio, height_ratio)
+
+        new_width = int(orig_width * scale_factor)
+        new_height = int(orig_height * scale_factor)
+
+        scaled_pixmap = self.original_pixmap.scaled(
+            new_width, new_height,
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        )
+        self.photo_label.setPixmap(scaled_pixmap)
+
+        self.photo_container.setFixedSize(new_width + 20, new_height + 20)
+
+    def close_with_animation(self):
+        self.fade_animation.setDirection(QPropertyAnimation.Backward)
+        self.fade_animation.finished.connect(self.close)
+        self.fade_animation.start()
+
+    def mousePressEvent(self, event):
+        container_pos = self.photo_container.mapFrom(self, event.pos())
+        
+        if not self.photo_container.rect().contains(container_pos):
+            self.close_with_animation()
+        else:
+            super().mousePressEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close_with_animation()
+        else:
+            super().keyPressEvent(event)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_image_size() 

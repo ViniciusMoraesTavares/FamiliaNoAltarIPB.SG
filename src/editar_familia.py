@@ -1,16 +1,24 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QHBoxLayout
+    QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QHBoxLayout, QMessageBox
 )
 from PySide6.QtGui import QPixmap, QFont
 from PySide6.QtCore import Qt
 import os
+import shutil
+from uuid import uuid4
 from src.utils import carregar_familias, salvar_familias
 
+FOTOS_PATH = "imagens/familias"
+
 class JanelaEditarFamilia(QWidget):
-    def __init__(self, familia, callback_atualizar):
+    def __init__(self, familia, callback_atualizacao):
         super().__init__()
         self.familia = familia
-        self.callback_atualizar = callback_atualizar
+        self.callback_atualizacao = callback_atualizacao
+        self.old_photo_path = familia.get("foto", "")  
+        self.caminho_foto = None 
+
+        os.makedirs(FOTOS_PATH, exist_ok=True)
 
         self.setWindowTitle("✏️ Editar Família")
         self.setMinimumSize(400, 300)
@@ -60,15 +68,43 @@ class JanelaEditarFamilia(QWidget):
             self.foto_label.setFont(QFont("Arial", 50))
 
     def selecionar_foto(self):
-        caminho, _ = QFileDialog.getOpenFileName(self, "Selecionar nova foto", "", "Imagens (*.png *.jpg *.jpeg)")
+        file_dialog = QFileDialog()
+        caminho, _ = file_dialog.getOpenFileName(self, "Selecionar nova foto", "", "Imagens (*.png *.jpg *.jpeg)")
         if caminho:
-            self.familia["foto"] = caminho
-            self.carregar_foto()
+            self.caminho_foto = caminho
+            QMessageBox.information(self, "Foto Selecionada", "Foto selecionada com sucesso!")
+            pixmap = QPixmap(caminho).scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.foto_label.setPixmap(pixmap)
+
+    def _should_delete_old_photo(self):
+        if not self.old_photo_path or not os.path.exists(self.old_photo_path):
+            return False
+            
+        familias = carregar_familias()
+        for f in familias:
+            if f.get("numero") != self.familia.get("numero") and f.get("foto") == self.old_photo_path:
+                return False
+                
+        return True
 
     def salvar_edicao(self):
         novo_nome = self.nome_input.text().strip()
         if novo_nome:
             self.familia["nome"] = novo_nome
+
+        if self.caminho_foto:
+            extensao = os.path.splitext(self.caminho_foto)[-1]
+            novo_nome_arquivo = f"{uuid4().hex[:8]}{extensao}"
+            caminho_destino = os.path.join(FOTOS_PATH, novo_nome_arquivo)
+            shutil.copy2(self.caminho_foto, caminho_destino)
+            
+            self.familia["foto"] = caminho_destino.replace("\\", "/")
+            
+            if self._should_delete_old_photo():
+                try:
+                    os.remove(self.old_photo_path)
+                except Exception as e:
+                    print(f"Erro ao deletar foto antiga: {str(e)}")
 
         familias = carregar_familias()
         for i, f in enumerate(familias):
@@ -78,8 +114,7 @@ class JanelaEditarFamilia(QWidget):
 
         salvar_familias(familias)
         
-        # Chama o callback antes de fechar a janela
-        if self.callback_atualizar:
-            self.callback_atualizar()
+        if self.callback_atualizacao:
+            self.callback_atualizacao()
             
         self.close()
