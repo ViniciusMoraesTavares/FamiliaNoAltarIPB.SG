@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QPixmap, QGuiApplication, QFont, QMovie
 from PySide6.QtCore import Qt, Signal, QTimer, QSize
 import os
+import sys
 
 from .data_manager import DataManager
 from .widgets import TitleLabel, ImageContainer, LoadingOverlay
@@ -87,6 +88,7 @@ class JanelaSorteio(QWidget):
         familia = next((f for f in familias if str(f.get("numero")) == str(numero)), None)
         if familia:
             foto_path = familia.get("foto", "")
+            foto_path = self.obter_caminho_arquivo(foto_path)
             if os.path.exists(foto_path):
                 pixmap = QPixmap(foto_path).scaled(600, 600, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 self.imagem_ultima.set_image(pixmap)
@@ -124,6 +126,7 @@ class JanelaSorteio(QWidget):
         self.nome_ultima.hide()
 
         foto_path = familia.get("foto", "")
+        foto_path = self.obter_caminho_arquivo(foto_path)
         if os.path.exists(foto_path):
             pixmap = QPixmap(foto_path).scaled(600, 600, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.imagem_label.set_image(pixmap)
@@ -150,3 +153,10 @@ class JanelaSorteio(QWidget):
         super().resizeEvent(event)
         if self.loading_overlay:
             self.loading_overlay.resize(self.size())
+
+    def obter_caminho_arquivo(self, caminho):
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.abspath('.') 
+        return os.path.join(base_path, caminho)

@@ -18,6 +18,7 @@ def carregar_familias():
 
 def salvar_familias(familias):
     try:
+        os.makedirs(os.path.dirname(FAMILIAS_PATH), exist_ok=True)
         with open(FAMILIAS_PATH, "w", encoding="utf-8") as f:
             json.dump(familias, f, ensure_ascii=False, indent=4)
     except Exception as e:

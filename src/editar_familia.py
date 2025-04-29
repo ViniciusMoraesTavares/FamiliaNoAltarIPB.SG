@@ -22,7 +22,7 @@ class JanelaEditarFamilia(QWidget):
         self.familia = familia
         self.callback_atualizacao = callback_atualizacao
         self.old_photo_path = familia.get("foto", "")  
-        self.caminho_foto = None 
+        self.caminho_foto = None
 
         os.makedirs(FOTOS_PATH, exist_ok=True)
 
@@ -75,7 +75,9 @@ class JanelaEditarFamilia(QWidget):
 
     def selecionar_foto(self):
         file_dialog = QFileDialog()
-        caminho, _ = file_dialog.getOpenFileName(self, "Selecionar nova foto", "", "Imagens (*.png *.jpg *.jpeg)")
+        caminho, _ = file_dialog.getOpenFileName(
+            self, "Selecionar nova foto", "", "Imagens (*.png *.jpg *.jpeg)"
+        )
         if caminho:
             self.caminho_foto = caminho
             QMessageBox.information(self, "Foto Selecionada", "Foto selecionada com sucesso!")
@@ -85,12 +87,12 @@ class JanelaEditarFamilia(QWidget):
     def _should_delete_old_photo(self):
         if not self.old_photo_path or not os.path.exists(self.old_photo_path):
             return False
-            
+
         familias = carregar_familias()
         for f in familias:
             if f.get("numero") != self.familia.get("numero") and f.get("foto") == self.old_photo_path:
                 return False
-                
+
         return True
 
     def salvar_edicao(self):
@@ -103,9 +105,10 @@ class JanelaEditarFamilia(QWidget):
             novo_nome_arquivo = f"{uuid4().hex[:8]}{extensao}"
             caminho_destino = os.path.join(FOTOS_PATH, novo_nome_arquivo)
             shutil.copy2(self.caminho_foto, caminho_destino)
-            
-            self.familia["foto"] = os.path.join(BASE_PATH, "imagens", "familias", novo_nome_arquivo).replace("\\", "/")
-            
+
+            novo_caminho_foto = os.path.join("imagens", "familias", novo_nome_arquivo).replace("\\", "/")
+            self.familia["foto"] = os.path.join(BASE_PATH, novo_caminho_foto).replace("\\", "/")
+
             if self._should_delete_old_photo():
                 try:
                     os.remove(self.old_photo_path)
@@ -119,8 +122,8 @@ class JanelaEditarFamilia(QWidget):
                 break
 
         salvar_familias(familias)
-        
+
         if self.callback_atualizacao:
             self.callback_atualizacao()
-            
+
         self.close()
