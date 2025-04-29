@@ -238,12 +238,15 @@ class FamilyCard(BaseCard):
     
     def _setup_ui(self):
         img_container = ImageContainer(self)
-        caminho = self.familia.get("foto", "")
+        relativo = self.familia.get("foto", "")
+        caminho = os.path.join(BASE_PATH, relativo) if not os.path.isabs(relativo) else relativo
+
         if os.path.exists(caminho):
             pixmap = QPixmap(caminho).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             img_container.set_image(pixmap)
         else:
             img_container.clear()
+
             
         img_container.image_label.mousePressEvent = lambda event: self._on_image_clicked(caminho)
         self.layout.addWidget(img_container)
