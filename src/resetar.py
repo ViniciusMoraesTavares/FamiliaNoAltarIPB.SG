@@ -1,7 +1,15 @@
 import random
 import json
 import os
+import sys
 from src.utils import carregar_familias, salvar_familias
+
+if getattr(sys, 'frozen', False):
+    BASE_PATH = sys._MEIPASS
+else:
+    BASE_PATH = os.path.abspath('.')
+
+sorteio_file_path = os.path.join(BASE_PATH, 'dados', 'sorteio.json')
 
 def resetar_sorteio():
     familias = carregar_familias()
@@ -16,7 +24,6 @@ def resetar_sorteio():
 
     salvar_familias(familias)
     
-    sorteio_file_path = 'dados/sorteio.json'
     try:
         if not os.path.exists(sorteio_file_path):
             with open(sorteio_file_path, 'w') as sorteio_file:

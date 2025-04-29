@@ -25,6 +25,10 @@ from src.widgets import (
 )
 from src.styles import AppStyles
 
+if getattr(sys, 'frozen', False):
+    BASE_PATH = sys._MEIPASS
+else:
+    BASE_PATH = os.path.abspath('.')
 
 class LoadingSpinner(QFrame):
     def __init__(self, parent=None):
@@ -42,7 +46,7 @@ class LoadingSpinner(QFrame):
         
         self.spinner_label = QLabel()
         self.spinner_label.setAlignment(Qt.AlignCenter)
-        self.spinner_movie = QMovie("imagens/loading.gif")
+        self.spinner_movie = QMovie(os.path.join(BASE_PATH, "imagens", "loading.gif"))
         self.spinner_movie.setScaledSize(QSize(50, 50))
         self.spinner_label.setMovie(self.spinner_movie)
         layout.addWidget(self.spinner_label)

@@ -3,6 +3,12 @@ import os
 from datetime import datetime
 import shutil
 import random
+import sys
+
+if getattr(sys, 'frozen', False):
+    BASE_PATH = sys._MEIPASS
+else:
+    BASE_PATH = os.path.abspath('.')
 
 class DataManager:
     _instance = None
@@ -15,10 +21,10 @@ class DataManager:
         return cls._instance
     
     def __init__(self):
-        self.familias_file = "dados/familias.json"
-        self.sorteio_file = "dados/sorteio.json"
+        self.familias_file = os.path.join(BASE_PATH, "dados", "familias.json")
+        self.sorteio_file = os.path.join(BASE_PATH, "dados", "sorteio.json")
         
-        os.makedirs("dados", exist_ok=True)
+        os.makedirs(os.path.join(BASE_PATH, "dados"), exist_ok=True)
     
     def carregar_familias(self, force_reload=False):
         if self._familias_cache is not None and not force_reload:

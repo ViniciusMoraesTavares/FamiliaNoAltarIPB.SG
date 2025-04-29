@@ -7,8 +7,14 @@ import os
 import shutil
 from uuid import uuid4
 from src.utils import carregar_familias, salvar_familias
+import sys
 
-FOTOS_PATH = "imagens/familias"
+if getattr(sys, 'frozen', False):
+    BASE_PATH = sys._MEIPASS
+else:
+    BASE_PATH = os.path.abspath('.')
+
+FOTOS_PATH = os.path.join(BASE_PATH, "imagens", "familias")
 
 class JanelaEditarFamilia(QWidget):
     def __init__(self, familia, callback_atualizacao):
@@ -98,7 +104,7 @@ class JanelaEditarFamilia(QWidget):
             caminho_destino = os.path.join(FOTOS_PATH, novo_nome_arquivo)
             shutil.copy2(self.caminho_foto, caminho_destino)
             
-            self.familia["foto"] = caminho_destino.replace("\\", "/")
+            self.familia["foto"] = os.path.join(BASE_PATH, "imagens", "familias", novo_nome_arquivo).replace("\\", "/")
             
             if self._should_delete_old_photo():
                 try:

@@ -1,8 +1,15 @@
+import os
+import sys
 import json
 import random
 
-CAMINHO_DADOS = "dados/familias.json"
-CAMINHO_SORTEIO = "dados/sorteio.json"
+if getattr(sys, 'frozen', False):
+    BASE_PATH = sys._MEIPASS
+else:
+    BASE_PATH = os.path.abspath('.')
+
+CAMINHO_DADOS = os.path.join(BASE_PATH, "dados", "familias.json")
+CAMINHO_SORTEIO = os.path.join(BASE_PATH, "dados", "sorteio.json")
 
 def carregar_familias():
     with open(CAMINHO_DADOS, "r", encoding="utf-8") as f:

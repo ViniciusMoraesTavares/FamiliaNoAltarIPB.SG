@@ -5,9 +5,20 @@ import os
 import json
 import shutil
 from uuid import uuid4
+import sys
 
-FOTOS_PATH = "imagens/familias"
-DADOS_PATH = "dados/familias.json"
+def get_resource_path(relative_path):
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+FOTOS_RELATIVE_PATH = os.path.join("imagens", "familias")
+DADOS_RELATIVE_PATH = os.path.join("dados", "familias.json")
+
+FOTOS_PATH = get_resource_path(FOTOS_RELATIVE_PATH)
+DADOS_PATH = get_resource_path(DADOS_RELATIVE_PATH)
 
 class JanelaAdicionarFamilia(QWidget):
     familia_adicionada = Signal()  
@@ -109,11 +120,13 @@ class JanelaAdicionarFamilia(QWidget):
         caminho_destino = os.path.join(FOTOS_PATH, novo_nome_arquivo)
         shutil.copy2(self.caminho_foto, caminho_destino)
 
+        caminho_relativo_foto = os.path.join(FOTOS_RELATIVE_PATH, novo_nome_arquivo).replace("\\", "/")
+
         nova_familia = {
             "id": novo_id,
             "numero": numero,
             "nome": nome,
-            "foto": caminho_destino.replace("\\", "/"),
+            "foto": caminho_relativo_foto,
             "sorteado": False
         }
 

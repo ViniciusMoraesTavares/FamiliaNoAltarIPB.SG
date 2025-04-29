@@ -6,6 +6,12 @@ from PySide6.QtCore import Qt, Signal, QSize, QTimer, QPropertyAnimation, QEasin
 from PySide6.QtGui import QFont, QPixmap, QMovie, QColor
 import os
 from .styles import AppStyles
+import sys
+
+if getattr(sys, 'frozen', False):
+    BASE_PATH = sys._MEIPASS
+else:
+    BASE_PATH = os.path.abspath('.')
 
 class NotificationWidget(QFrame):
     def __init__(self, parent=None):
@@ -479,7 +485,7 @@ class LoadingOverlay(QFrame):
         layout.setAlignment(Qt.AlignCenter)
         
         self.loading_label = QLabel()
-        self.loading_movie = QMovie("imagens/loading.gif")
+        self.loading_movie = QMovie(os.path.join(BASE_PATH, "imagens", "loading.gif"))
         self.loading_movie.setScaledSize(QSize(300, 300))
         self.loading_label.setMovie(self.loading_movie)
         layout.addWidget(self.loading_label)

@@ -1,7 +1,13 @@
 import json
 import os
+import sys
 
-DADOS_PATH = "dados/familias.json"
+if getattr(sys, 'frozen', False):
+    BASE_PATH = sys._MEIPASS
+else:
+    BASE_PATH = os.path.abspath('.')
+
+DADOS_PATH = os.path.join(BASE_PATH, "dados", "familias.json")
 
 def contar_familias():
     if not os.path.exists(DADOS_PATH):
