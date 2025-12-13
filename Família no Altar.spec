@@ -1,12 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 
+from PyInstaller.utils.hooks import collect_submodules
+
+hidden = []
+hidden += collect_submodules('PySide6')
+hidden += ['win32com', 'win32com.client']
+
 a = Analysis(
     ['main.py'],
     pathex=['src'],
     binaries=[],
     datas=[('dados', 'dados'), ('imagens', 'imagens')],
-    hiddenimports=[],
+    hiddenimports=hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -19,8 +25,10 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
     [],
-    exclude_binaries=True,
     name='Família no Altar',
     debug=False,
     bootloader_ignore_signals=False,
@@ -32,14 +40,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['C:\\Users\\vinic\\Pictures\\icone.ico'],
-)
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.datas,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name='Família no Altar',
+    icon=['C:\\Users\\Myelin\\OneDrive\\Documentos\\icone.ico'],
 )
