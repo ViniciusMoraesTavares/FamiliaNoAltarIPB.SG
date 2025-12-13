@@ -15,7 +15,7 @@ from src.filtro_familias       import nao_sorteadas, sorteadas, buscar
 from src.data_manager import DataManager
 from src.widgets import (
     NotificationWidget, AutoSaveBanner, LoadingOverlay,
-    FamilyCard, SearchBar, FilterButton, TitleLabel, FullscreenImageViewer
+    SearchBar, FilterButton, TitleLabel, FullscreenImageViewer, PhotoViewer
 )
 from src.styles import AppStyles
 
@@ -242,25 +242,25 @@ class PainelPrincipal(QWidget):
         self.numero_input_panel.returnPressed.connect(self._on_enter_panel_numero)
         botoes_layout.addWidget(self.numero_input_panel)
 
-        btn_adicionar = QPushButton("➕ Adicionar Família")
+        btn_adicionar = QPushButton("Adicionar Família")
         btn_adicionar.clicked.connect(self.janela_adicionar.show)
         btn_adicionar.setStyleSheet(AppStyles.button_style())
 
-        btn_sorteio = QPushButton("🎲 Iniciar Sorteio")
+        btn_sorteio = QPushButton("Iniciar Sorteio")
         btn_sorteio.clicked.connect(self.abrir_sorteio)
         btn_sorteio.setStyleSheet(AppStyles.button_style())
 
-        self.btn_fechar_sorteio = QPushButton("❌ Fechar Sorteio")
+        self.btn_fechar_sorteio = QPushButton("Fechar Sorteio")
         self.btn_fechar_sorteio.clicked.connect(self.fechar_sorteio)
         self.btn_fechar_sorteio.setStyleSheet(AppStyles.button_style())
         self.btn_fechar_sorteio.setVisible(False)
 
-        self.botao_finalizar = QPushButton("✅ Finalizar Sorteio")
+        self.botao_finalizar = QPushButton("Finalizar Sorteio")
         self.botao_finalizar.clicked.connect(self.finalizar_sorteio_panel)
         self.botao_finalizar.setStyleSheet(AppStyles.button_style())
         self.botao_finalizar.setEnabled(False)
 
-        self.btn_resetar = QPushButton("🔄 Resetar Sorteio")
+        self.btn_resetar = QPushButton("Resetar Sorteio")
         self.btn_resetar.clicked.connect(self.resetar_sorteio_callback)
         self.btn_resetar.setStyleSheet(AppStyles.button_style())
         self.btn_resetar.setVisible(False)
@@ -275,13 +275,39 @@ class PainelPrincipal(QWidget):
 
         main_layout.addWidget(header)
 
-        search_container = QFrame()
-        search_container.setStyleSheet("""
-            QFrame {
-                background-color: #F5F5F5;
-                border-radius: 12px;
-            }
+        page_layout = QHBoxLayout()
+        page_layout.setContentsMargins(0, 0, 0, 0)
+        page_layout.setSpacing(0)
+
+        sidebar = QFrame()
+        sidebar.setFixedWidth(240)
+        sidebar.setStyleSheet("""
+            QFrame { background-color: #FAFAFA; border-right: 1px solid #E0E0E0; }
+            QPushButton { text-align: left; padding: 12px 16px; border: none; border-radius: 0; font-weight: 600; color: #424242; }
+            QPushButton:hover { background-color: #F0F0F0; }
         """)
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(0)
+
+        btn_nav_painel = QPushButton("Painel")
+        btn_nav_sorteio = QPushButton("Sorteio")
+        btn_nav_cadastro = QPushButton("Cadastro")
+        btn_nav_painel.clicked.connect(lambda: None)
+        btn_nav_sorteio.clicked.connect(self.abrir_sorteio)
+        btn_nav_cadastro.clicked.connect(self.janela_adicionar.show)
+        sidebar_layout.addWidget(btn_nav_painel)
+        sidebar_layout.addWidget(btn_nav_sorteio)
+        sidebar_layout.addWidget(btn_nav_cadastro)
+        sidebar_layout.addStretch()
+
+        right_content = QWidget()
+        right_layout = QVBoxLayout(right_content)
+        right_layout.setContentsMargins(30, 30, 30, 30)
+        right_layout.setSpacing(20)
+
+        search_container = QFrame()
+        search_container.setStyleSheet("QFrame { background-color: #F5F5F5; border-radius: 12px; }")
         search_layout = QHBoxLayout(search_container)
         search_layout.setContentsMargins(20, 15, 20, 15)
         search_layout.setSpacing(15)
@@ -312,7 +338,7 @@ class PainelPrincipal(QWidget):
         self.label_total.setStyleSheet("font-size: 14px; color: #616161; font-weight: bold;")
         search_layout.addWidget(self.label_total)
 
-        content_layout.addWidget(search_container)
+        right_layout.addWidget(search_container)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -325,7 +351,11 @@ class PainelPrincipal(QWidget):
                 background-color: transparent;
             }
         """)
-        content_layout.addWidget(self.scroll_area)
+        right_layout.addWidget(self.scroll_area)
+
+        page_layout.addWidget(sidebar)
+        page_layout.addWidget(right_content)
+        content_layout.addLayout(page_layout)
         self.scroll_area.verticalScrollBar().valueChanged.connect(self.on_scroll)
 
         main_layout.addWidget(content_widget)
@@ -410,214 +440,74 @@ class PainelPrincipal(QWidget):
 
         container = QWidget()
         container.setStyleSheet("background-color: transparent;")
-        layout_grade = QGridLayout(container)
-        layout_grade.setContentsMargins(10, 10, 10, 10)
-        layout_grade.setSpacing(20)
+        list_layout = QVBoxLayout(container)
+        list_layout.setContentsMargins(0, 0, 0, 0)
+        list_layout.setSpacing(8)
 
-        self._cards = []
-        self._familias_filtradas = familias
-        self._batch_index = 0
-        self._grid_layout = layout_grade
+        for f in familias:
+            item = self._criar_item_lista(f)
+            list_layout.addWidget(item)
+        list_layout.addStretch()
+
         self.scroll_area.setWidget(container)
-        self.render_next_batch()
         self.verificar_reset_necessario()
         self.label_total.setText(f"Total de Famílias: {len(self.data_manager.carregar_familias())}")
         self.hideLoading()
 
-    def render_next_batch(self):
-        start = self._batch_index
-        end = min(start + self._batch_size, len(self._familias_filtradas))
-        for i in range(start, end):
-            familia = self._familias_filtradas[i]
-            card = FamilyCard(familia)
-            card.edit_clicked.connect(self.abrir_edicao_familia)
-            card.delete_clicked.connect(self.excluir_familia)
-            card.image_clicked.connect(self.exibir_imagem_fullscreen)
-            self._grid_layout.addWidget(card, i // 4, i % 4)
-            self._cards.append(card)
-        self._batch_index = end
-        if len(self._familias_filtradas) < 4:
-            self._grid_layout.setRowStretch(1, 1)
-
     def on_scroll(self):
-        vp = self.scroll_area.viewport().rect()
-        for card in self._cards:
-            try:
-                card.ensure_image_loaded(vp)
-            except Exception:
-                pass
-        sb = self.scroll_area.verticalScrollBar()
-        if sb.value() >= sb.maximum() - 50:
-            if self._batch_index < len(self._familias_filtradas):
-                self.render_next_batch()
+        pass
 
     def exibir_imagem_fullscreen(self, imagem_url):
-        fullscreen_widget = FullscreenImageViewer(imagem_url)
-        fullscreen_widget.show()  
+        if not imagem_url:
+            return
+        if not os.path.isabs(imagem_url):
+            imagem_url = os.path.join(BASE_PATH, imagem_url)
+        if os.path.exists(imagem_url):
+            pix = QPixmap(imagem_url)
+            viewer = PhotoViewer(pix, self)
+            viewer.exec_()
 
     def verificar_reset_necessario(self):
         familias = self.data_manager.carregar_familias()
         todas = all(f.get("sorteado", False) for f in familias)
         self.btn_resetar.setVisible(todas)
 
-    def criar_card_familia(self, familia):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 12px;
-            }
-        """)
+    def _criar_item_lista(self, familia):
+        item = QFrame()
+        item.setStyleSheet("QFrame { background-color: white; border: 1px solid #E0E0E0; border-radius: 8px; }")
+        h = QHBoxLayout(item)
+        h.setContentsMargins(12, 8, 12, 8)
+        h.setSpacing(12)
+        numero = QLabel(f"{familia.get('numero', '-')}")
+        numero.setStyleSheet("QLabel { font-size: 16px; font-weight: 700; color: #212121; }")
+        nome = QLabel(f"{familia.get('nome','')}")
+        nome.setStyleSheet("QLabel { font-size: 16px; font-weight: 600; color: #1F2937; }")
+        nome.mousePressEvent = lambda e, f=familia: self._abrir_modal_foto(f)
+        h.addWidget(numero, 0)
+        h.addWidget(nome, 1)
+        status_icon = QLabel("✓" if familia.get("sorteado") else "⌛")
+        status_icon.setStyleSheet("QLabel { color: %s; font-size: 18px; }" % ("#2E7D32" if familia.get("sorteado") else "#757575"))
+        h.addWidget(status_icon, 0)
+        editar = QPushButton("Editar")
+        editar.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; padding: 6px 12px; border-radius: 6px; } QPushButton:hover { background-color: #43A047; }")
+        editar.clicked.connect(lambda: self.abrir_edicao_familia(familia))
+        excluir = QPushButton("Excluir")
+        excluir.setStyleSheet("QPushButton { background-color: #EF5350; color: white; padding: 6px 12px; border-radius: 6px; } QPushButton:hover { background-color: #E53935; }")
+        excluir.clicked.connect(lambda: self.excluir_familia(familia))
+        h.addWidget(editar, 0)
+        h.addWidget(excluir, 0)
+        return item
 
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(15)
-        shadow.setColor(QColor(0, 0, 0, 25))
-        shadow.setOffset(0, 2)
-        card.setGraphicsEffect(shadow)
-
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(10)
-
-        img_container = QFrame()
-        img_container.setStyleSheet("""
-            QFrame {
-                background-color: #F5F5F5;
-                border-radius: 8px;
-                min-height: 120px;
-            }
-        """)
-        img_layout = QVBoxLayout(img_container)
-        img_layout.setContentsMargins(0, 0, 0, 0)
-
-        img_label = QLabel()
-        img_label.setFixedSize(120, 120)
-        img_label.setAlignment(Qt.AlignCenter)
-        
+    def _abrir_modal_foto(self, familia):
         caminho = familia.get("foto", "")
+        if not caminho:
+            return
+        if not os.path.isabs(caminho):
+            caminho = os.path.join(BASE_PATH, caminho)
         if os.path.exists(caminho):
-            pixmap = QPixmap(caminho).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            img_label.setPixmap(pixmap)
-            img_label.setStyleSheet("""
-                QLabel {
-                    border-radius: 8px;
-                }
-            """)
-        else:
-            img_label.setText("📷")
-            img_label.setFont(QFont("Segoe UI", 40))
-            img_label.setStyleSheet("""
-                QLabel {
-                    color: #9E9E9E;
-                }
-            """)
-
-        img_layout.addWidget(img_label, alignment=Qt.AlignCenter)
-        layout.addWidget(img_container)
-
-        nome_label = QLabel(familia.get("nome", "Sem Nome"))
-        nome_label.setAlignment(Qt.AlignCenter)
-        nome_label.setStyleSheet("""
-            QLabel {
-                font-size: 16px;
-                font-weight: bold;
-                color: #212121;
-            }
-        """)
-        layout.addWidget(nome_label)
-
-        numero_label = QLabel(f"Número: {familia.get('numero', '-')}")
-        numero_label.setAlignment(Qt.AlignCenter)
-        numero_label.setStyleSheet("""
-            QLabel {
-                color: #757575;
-                font-size: 14px;
-            }
-        """)
-        layout.addWidget(numero_label)
-
-        status_container = QFrame()
-        status_container.setStyleSheet("""
-            QFrame {
-                background-color: #E8F5E9;
-                border-radius: 12px;
-                padding: 5px;
-            }
-        """)
-        status_layout = QHBoxLayout(status_container)
-        status_layout.setContentsMargins(10, 5, 10, 5)
-
-        status = "Sorteado" if familia.get("sorteado") else "Aguardando"
-        icon = "✓" if familia.get("sorteado") else "⏳"
-        status_label = QLabel(f"{icon} {status}")
-        status_label.setAlignment(Qt.AlignCenter)
-        status_label.setStyleSheet(
-            "color: #2E7D32; font-weight: bold;" if familia.get("sorteado") 
-            else "color: #757575; font-style: italic;"
-        )
-        status_layout.addWidget(status_label)
-        layout.addWidget(status_container)
-
-        if familia.get("sorteado") and familia.get("data_sorteio"):
-            data_label = QLabel(f"📅 {familia.get('data_sorteio')}")
-            data_label.setAlignment(Qt.AlignCenter)
-            data_label.setStyleSheet("""
-                QLabel {
-                    color: #757575;
-                    font-size: 12px;
-                }
-            """)
-            layout.addWidget(data_label)
-
-        botoes_layout = QHBoxLayout()
-        botoes_layout.setSpacing(4)
-        botoes_layout.setContentsMargins(0, 0, 0, 0)
-
-        editar_btn = QPushButton("✏️")
-        editar_btn.clicked.connect(lambda: self.abrir_edicao_familia(familia))
-        editar_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                padding: 8px;
-                border-radius: 6px;
-                font-size: 16px;
-                font-weight: bold;
-                min-width: 32px;
-                max-width: 32px;
-            }
-            QPushButton:hover {
-                background-color: #43A047;
-            }
-        """)
-
-        excluir_btn = QPushButton("🗑️")
-        excluir_btn.clicked.connect(lambda: self.excluir_familia(familia))
-        excluir_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #EF5350;
-                color: white;
-                border: none;
-                padding: 8px;
-                border-radius: 6px;
-                font-size: 16px;
-                font-weight: bold;
-                min-width: 32px;
-                max-width: 32px;
-            }
-            QPushButton:hover {
-                background-color: #E53935;
-            }
-        """)
-
-        botoes_container = QWidget()
-        botoes_container.setLayout(botoes_layout)
-        botoes_layout.addWidget(editar_btn)
-        botoes_layout.addWidget(excluir_btn)
-        layout.addWidget(botoes_container, alignment=Qt.AlignCenter)
-
-        return card
+            pix = QPixmap(caminho)
+            viewer = PhotoViewer(pix, self)
+            viewer.exec_()
 
     def abrir_sorteio(self):
         from src.sorteio_tela import JanelaSorteio
