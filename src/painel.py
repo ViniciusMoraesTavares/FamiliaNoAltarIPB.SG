@@ -4,20 +4,14 @@ from PySide6.QtWidgets import (
     QSpacerItem, QSizePolicy, QLineEdit, QGraphicsDropShadowEffect,
     QToolButton, QButtonGroup
 )
-from PySide6.QtGui import QPixmap, QFont, QColor, QPalette, QIcon, QMovie
+from PySide6.QtGui import QPixmap, QFont, QColor, QPalette, QIcon, QMovie, QIntValidator
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QSize, Signal, Property
 import sys, os, random
 from datetime import datetime
 
 from src.adicionar_familia    import JanelaAdicionarFamilia
-from src.sorteio_tela          import JanelaSorteio
-from src.editar_familia        import JanelaEditarFamilia
 from src.janela_confirmacao    import JanelaConfirmacao
-from src.utils                 import carregar_familias, salvar_familias
 from src.filtro_familias       import nao_sorteadas, sorteadas, buscar
-from src.utils_familias import contar_familias
-from src.utils_sorteio import salvar_sorteio
-from src.resetar import resetar_sorteio
 from src.data_manager import DataManager
 from src.widgets import (
     NotificationWidget, AutoSaveBanner, LoadingOverlay,
@@ -194,6 +188,10 @@ class PainelPrincipal(QWidget):
         self.notification = NotificationWidget(self)
         self.auto_save_banner = AutoSaveBanner(self)
         self.loading_overlay = LoadingOverlay(self)
+        self._batch_size = 40
+        self._batch_index = 0
+        self._cards = []
+        self._familias_filtradas = []
 
         self.init_ui()
         self.showMaximized()
@@ -233,6 +231,16 @@ class PainelPrincipal(QWidget):
 
         botoes_layout = QHBoxLayout()
         botoes_layout.setSpacing(15)
+
+        self.numero_input_panel = QLineEdit()
+        self.numero_input_panel.setPlaceholderText("Número")
+        self.numero_input_panel.setValidator(QIntValidator(1, 999, self))
+        self.numero_input_panel.setFixedWidth(120)
+        self.numero_input_panel.setStyleSheet(AppStyles.input_style())
+        self.numero_input_panel.setVisible(False)
+        self.numero_input_panel.setEnabled(False)
+        self.numero_input_panel.returnPressed.connect(self._on_enter_panel_numero)
+        botoes_layout.addWidget(self.numero_input_panel)
 
         btn_adicionar = QPushButton("➕ Adicionar Família")
         btn_adicionar.clicked.connect(self.janela_adicionar.show)
@@ -300,7 +308,7 @@ class PainelPrincipal(QWidget):
         search_layout.addWidget(self.search_input)
 
         self.label_total = QLabel()
-        self.label_total.setText(f"Total de Famílias: {contar_familias()}")
+        self.label_total.setText(f"Total de Famílias: {len(self.data_manager.carregar_familias())}")
         self.label_total.setStyleSheet("font-size: 14px; color: #616161; font-weight: bold;")
         search_layout.addWidget(self.label_total)
 
@@ -318,6 +326,7 @@ class PainelPrincipal(QWidget):
             }
         """)
         content_layout.addWidget(self.scroll_area)
+        self.scroll_area.verticalScrollBar().valueChanged.connect(self.on_scroll)
 
         main_layout.addWidget(content_widget)
 
@@ -405,22 +414,42 @@ class PainelPrincipal(QWidget):
         layout_grade.setContentsMargins(10, 10, 10, 10)
         layout_grade.setSpacing(20)
 
-        for i, familia in enumerate(familias):
+        self._cards = []
+        self._familias_filtradas = familias
+        self._batch_index = 0
+        self._grid_layout = layout_grade
+        self.scroll_area.setWidget(container)
+        self.render_next_batch()
+        self.verificar_reset_necessario()
+        self.label_total.setText(f"Total de Famílias: {len(self.data_manager.carregar_familias())}")
+        self.hideLoading()
+
+    def render_next_batch(self):
+        start = self._batch_index
+        end = min(start + self._batch_size, len(self._familias_filtradas))
+        for i in range(start, end):
+            familia = self._familias_filtradas[i]
             card = FamilyCard(familia)
             card.edit_clicked.connect(self.abrir_edicao_familia)
             card.delete_clicked.connect(self.excluir_familia)
-
             card.image_clicked.connect(self.exibir_imagem_fullscreen)
+            self._grid_layout.addWidget(card, i // 4, i % 4)
+            self._cards.append(card)
+        self._batch_index = end
+        if len(self._familias_filtradas) < 4:
+            self._grid_layout.setRowStretch(1, 1)
 
-            layout_grade.addWidget(card, i // 4, i % 4)
-
-        if len(familias) < 4:
-            layout_grade.setRowStretch(1, 1)
-
-        self.scroll_area.setWidget(container)
-        self.verificar_reset_necessario()
-        self.label_total.setText(f"Total de Famílias: {contar_familias()}")
-        self.hideLoading()
+    def on_scroll(self):
+        vp = self.scroll_area.viewport().rect()
+        for card in self._cards:
+            try:
+                card.ensure_image_loaded(vp)
+            except Exception:
+                pass
+        sb = self.scroll_area.verticalScrollBar()
+        if sb.value() >= sb.maximum() - 50:
+            if self._batch_index < len(self._familias_filtradas):
+                self.render_next_batch()
 
     def exibir_imagem_fullscreen(self, imagem_url):
         fullscreen_widget = FullscreenImageViewer(imagem_url)
@@ -591,12 +620,14 @@ class PainelPrincipal(QWidget):
         return card
 
     def abrir_sorteio(self):
+        from src.sorteio_tela import JanelaSorteio
         if self.janela_sorteio and self.janela_sorteio.isVisible():
             self.janela_sorteio.raise_()
             return
 
         self.janela_sorteio = JanelaSorteio()
         self.janela_sorteio.sorteioRealizado.connect(self.on_sorteio_realizado)
+        self.janela_sorteio.ready.connect(self._on_sorteio_ready)
         
         self.janela_sorteio.show()
         QTimer.singleShot(100, self.janela_sorteio.showFullScreen)
@@ -611,6 +642,9 @@ class PainelPrincipal(QWidget):
             self.btn_fechar_sorteio.setVisible(False)
             self.numero_sorteado = None
             self.botao_finalizar.setEnabled(False)
+            self.numero_input_panel.clear()
+            self.numero_input_panel.setVisible(False)
+            self.numero_input_panel.setEnabled(False)
 
     def armazenar_sorteio_temporario(self, numero):
         self.numero_sorteado = numero
@@ -618,6 +652,25 @@ class PainelPrincipal(QWidget):
     def on_sorteio_realizado(self, numero):
         self.numero_sorteado = numero
         self.botao_finalizar.setEnabled(True)
+
+    def _on_sorteio_ready(self):
+        self.numero_input_panel.setEnabled(True)
+        self.numero_input_panel.setVisible(True)
+        self.numero_input_panel.setFocus()
+        self.notification.show_message("Pronto para digitar o número", "info")
+
+    def _on_enter_panel_numero(self):
+        texto = self.numero_input_panel.text().strip()
+        if not texto:
+            self.notification.show_message("Digite um número válido.", "error")
+            return
+        if not self.janela_sorteio or not self.janela_sorteio.isVisible():
+            self.notification.show_message("Abra a tela de sorteio primeiro.", "error")
+            return
+        try:
+            self.janela_sorteio.mostrar_familia_por_numero(texto)
+        except Exception as e:
+            self.notification.show_message(f"Erro ao processar número: {str(e)}", "error")
 
     def finalizar_sorteio_panel(self):
         if not self.numero_sorteado:
@@ -648,6 +701,9 @@ class PainelPrincipal(QWidget):
                     if self.janela_sorteio:
                         self.janela_sorteio.close()
                         self.janela_sorteio = None
+                        self.numero_input_panel.clear()
+                        self.numero_input_panel.setVisible(False)
+                        self.numero_input_panel.setEnabled(False)
 
                     msg = f"Família {familia_sorteada['nome']} sorteada com sucesso!"
                     dlg = JanelaConfirmacao("", parent=self, info_text=msg)
@@ -667,6 +723,7 @@ class PainelPrincipal(QWidget):
             self.data_manager.carregar_familias(force_reload=True)
             self.atualizar_galeria()
             
+        from src.editar_familia import JanelaEditarFamilia
         self.janela_edicao = JanelaEditarFamilia(familia, callback_atualizacao)
         self.janela_edicao.show()
 
@@ -683,24 +740,13 @@ class PainelPrincipal(QWidget):
         QTimer.singleShot(100, lambda: self._executar_exclusao_impl(familia))
 
     def _executar_exclusao_impl(self, familia):
-        familias = self.data_manager.carregar_familias()
-        familias = [f for f in familias if f["numero"] != familia["numero"]]
-        
-        foto_path = familia.get("foto", "")
-        if foto_path:
-            try:
-                if os.path.exists(foto_path):
-                    os.remove(foto_path)
-            except Exception as e:
-                self.notification.show_message(f"Erro ao deletar foto: {str(e)}", "error")
-        
-        if self.data_manager.salvar_familias(familias):
+        ok = self.data_manager.excluir_familia(familia["numero"])
+        if ok:
             self.notification.show_message(f"Família {familia['nome']} removida com sucesso!", "success")
             self.auto_save_banner.show_saved()
             self.atualizar_galeria()
         else:
             self.notification.show_message("Erro ao remover família", "error")
-        
         self.hideLoading()
 
     def showLoading(self):

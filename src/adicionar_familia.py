@@ -2,23 +2,7 @@ from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QMessageBox
 from PySide6.QtGui import QFont
 import os
-import json
-import shutil
-from uuid import uuid4
-import sys
-
-def get_resource_path(relative_path):
-    if getattr(sys, 'frozen', False):
-        base_path = sys._MEIPASS
-    else:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
-
-FOTOS_RELATIVE_PATH = os.path.join("imagens", "familias")
-DADOS_RELATIVE_PATH = os.path.join("dados", "familias.json")
-
-FOTOS_PATH = get_resource_path(FOTOS_RELATIVE_PATH)
-DADOS_PATH = get_resource_path(DADOS_RELATIVE_PATH)
+from src.data_manager import DataManager
 
 class JanelaAdicionarFamilia(QWidget):
     familia_adicionada = Signal()  
@@ -90,6 +74,7 @@ class JanelaAdicionarFamilia(QWidget):
         self.layout.addWidget(self.botao_salvar)
 
         self.caminho_foto = None
+        self.data_manager = DataManager()
 
     def escolher_foto(self):
         file_dialog = QFileDialog()
@@ -99,43 +84,17 @@ class JanelaAdicionarFamilia(QWidget):
             QMessageBox.information(self, "Foto Selecionada", "Foto selecionada com sucesso!")
 
     def salvar_familia(self):
-        nome_base = self.input_nome.text().strip()
-        nome = nome_base
-
-        if not nome or not self.caminho_foto:
-            QMessageBox.warning(self, "Erro", "Por favor, preencha o nome e escolha uma foto.")
+        nome = self.input_nome.text().strip()
+        if not nome:
+            QMessageBox.warning(self, "Erro", "Informe o nome da família.")
             return
-
-        if os.path.exists(DADOS_PATH):
-            with open(DADOS_PATH, "r", encoding="utf-8") as f:
-                familias = json.load(f)
-        else:
-            familias = []
-
-        novo_id = max([f["id"] for f in familias], default=0) + 1
-        numero = max([f["numero"] for f in familias], default=0) + 1
-
-        extensao = os.path.splitext(self.caminho_foto)[-1]
-        novo_nome_arquivo = f"{uuid4().hex[:8]}{extensao}"
-        caminho_destino = os.path.join(FOTOS_PATH, novo_nome_arquivo)
-        shutil.copy2(self.caminho_foto, caminho_destino)
-
-        caminho_relativo_foto = os.path.join(FOTOS_RELATIVE_PATH, novo_nome_arquivo).replace("\\", "/")
-
-        nova_familia = {
-            "id": novo_id,
-            "numero": numero,
-            "nome": nome,
-            "foto": caminho_relativo_foto,
-            "sorteado": False
-        }
-
-        familias.append(nova_familia)
-
-        with open(DADOS_PATH, "w", encoding="utf-8") as f:
-            json.dump(familias, f, indent=4, ensure_ascii=False)
-
+        if not self.caminho_foto:
+            QMessageBox.warning(self, "Erro", "Escolha uma foto válida (.png, .jpg, .jpeg).")
+            return
+        ok = self.data_manager.adicionar_familia(nome, self.caminho_foto)
+        if not ok:
+            QMessageBox.warning(self, "Erro", "Não foi possível adicionar a família. Verifique os dados.")
+            return
         QMessageBox.information(self, "Sucesso", f"Família '{nome}' adicionada com sucesso!")
-        
         self.familia_adicionada.emit()
         self.close()

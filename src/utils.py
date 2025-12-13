@@ -1,25 +1,9 @@
-import os
-import sys
-import json
+from src.data_manager import DataManager
 
-if getattr(sys, 'frozen', False):
-    BASE_PATH = sys._MEIPASS
-else:
-    BASE_PATH = os.path.abspath('.')
-
-FAMILIAS_PATH = os.path.join(BASE_PATH, "dados", "familias.json")
+_dm = DataManager()
 
 def carregar_familias():
-    try:
-        with open(FAMILIAS_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return []
+    return _dm.carregar_familias()
 
 def salvar_familias(familias):
-    try:
-        os.makedirs(os.path.dirname(FAMILIAS_PATH), exist_ok=True)
-        with open(FAMILIAS_PATH, "w", encoding="utf-8") as f:
-            json.dump(familias, f, ensure_ascii=False, indent=4)
-    except Exception as e:
-        print(f"Erro ao salvar o arquivo: {e}")
+    _dm.salvar_familias(familias)

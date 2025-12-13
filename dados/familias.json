@@ -4,14 +4,16 @@
     "numero": 1,
     "nome": "Tereza e Valter",
     "foto": "imagens/familias/1bf8e31b.jpg",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
     "id": 2,
     "numero": 2,
     "nome": "Eliene Assis",
     "foto": "imagens/familias/8102ec18.jpg",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
     "id": 3,
@@ -21,25 +23,28 @@
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/9921e770.jpg",
     "id": 4,
-    "nome": "Kauê",
     "numero": 4,
-    "sorteado": false
+    "nome": "Kauê",
+    "foto": "imagens/familias/9921e770.jpg",
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
-    "foto": "imagens/familias/fcda9fd7.png",
     "id": 5,
-    "nome": "Débora Melo e Família",
     "numero": 5,
-    "sorteado": false
+    "nome": "Débora Melo e Família",
+    "foto": "imagens/familias/fcda9fd7.png",
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
-    "foto": "imagens/familias/a243bfc1.png",
     "id": 6,
-    "nome": "Cláudio e Família",
     "numero": 6,
-    "sorteado": false
+    "nome": "Cláudio e Família",
+    "foto": "imagens/familias/a243bfc1.png",
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
     "id": 7,
@@ -49,73 +54,79 @@
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/4771126a.png",
     "id": 8,
-    "nome": "Ivair e Família",
     "numero": 8,
+    "nome": "Ivair e Família",
+    "foto": "imagens/familias/4771126a.png",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/e19ceb4e.jpg",
     "id": 9,
-    "nome": "Gilli e Família",
     "numero": 9,
-    "sorteado": false
+    "nome": "Gilli e Família",
+    "foto": "imagens/familias/e19ceb4e.jpg",
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
-    "foto": "imagens/familias/85365f80.png",
     "id": 10,
-    "nome": "Erasmo e Família",
     "numero": 10,
-    "sorteado": false
+    "nome": "Erasmo e Família",
+    "foto": "imagens/familias/85365f80.png",
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
     "id": 11,
     "numero": 11,
     "nome": "Rafael e Letícia",
     "foto": "imagens/familias/e6d75795.png",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
-    "foto": "imagens/familias/79a410e1.png",
     "id": 12,
-    "nome": "Weverson e Família",
     "numero": 12,
-    "sorteado": false
+    "nome": "Weverson e Família",
+    "foto": "imagens/familias/79a410e1.png",
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
-    "foto": "imagens/familias/3e14c6f0.png",
     "id": 13,
-    "nome": "Celso e Família",
     "numero": 13,
+    "nome": "Celso e Família",
+    "foto": "imagens/familias/3e14c6f0.png",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/bf5e0c33.png",
     "id": 14,
-    "nome": "Oziel e Família",
     "numero": 14,
+    "nome": "Oziel e Família",
+    "foto": "imagens/familias/bf5e0c33.png",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/1d71d868.png",
     "id": 15,
-    "nome": "Caio e Família",
     "numero": 15,
-    "sorteado": false
+    "nome": "Caio e Família",
+    "foto": "imagens/familias/1d71d868.png",
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
-    "foto": "imagens/familias/7083fcc0.png",
     "id": 16,
-    "nome": "José Moreira e Família",
     "numero": 16,
-    "sorteado": false
+    "nome": "José Moreira e Família",
+    "foto": "imagens/familias/7083fcc0.png",
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
-    "foto": "imagens/familias/1dc0b4fe.png",
     "id": 17,
-    "nome": "Argemiro e Família",
     "numero": 17,
+    "nome": "Argemiro e Família",
+    "foto": "imagens/familias/1dc0b4fe.png",
     "sorteado": false
   },
   {
@@ -126,80 +137,81 @@
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/65238c48.png",
     "id": 19,
-    "nome": "Ronaldo e Família",
     "numero": 19,
-    "sorteado": false
+    "nome": "Ronaldo e Família",
+    "foto": "imagens/familias/65238c48.png",
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
-    "foto": "imagens/familias/e736fd27.png",
     "id": 20,
-    "nome": "Odalício e Família",
     "numero": 20,
+    "nome": "Odalício e Família",
+    "foto": "imagens/familias/e736fd27.png",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/62ee9006.png",
     "id": 21,
-    "nome": "Leandro e Família",
     "numero": 21,
+    "nome": "Leandro e Família",
+    "foto": "imagens/familias/62ee9006.png",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/1d91e15b.png",
     "id": 22,
-    "nome": "Valdemar e Família",
     "numero": 22,
+    "nome": "Valdemar e Família",
+    "foto": "imagens/familias/1d91e15b.png",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/4fe59ce8.png",
     "id": 23,
-    "nome": "Wanderlei e Família",
     "numero": 23,
+    "nome": "Wanderlei e Família",
+    "foto": "imagens/familias/4fe59ce8.png",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/62bd8249.png",
     "id": 24,
-    "nome": "Pastor J. Alexandre e Família",
     "numero": 24,
+    "nome": "Pastor J. Alexandre e Família",
+    "foto": "imagens/familias/62bd8249.png",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/7a7ff9cc.png",
     "id": 25,
-    "nome": "Gilson e Família",
     "numero": 25,
+    "nome": "Gilson e Família",
+    "foto": "imagens/familias/7a7ff9cc.png",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/13814636.jpg",
     "id": 26,
-    "nome": "Osvaldo e Família",
     "numero": 26,
+    "nome": "Osvaldo e Família",
+    "foto": "imagens/familias/13814636.jpg",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/56cd2250.png",
     "id": 27,
-    "nome": "Sophia e Família",
     "numero": 27,
+    "nome": "Sophia e Família",
+    "foto": "imagens/familias/56cd2250.png",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/ef89356f.jpg",
     "id": 28,
-    "nome": "Adenir e Família",
     "numero": 28,
+    "nome": "Adenir e Família",
+    "foto": "imagens/familias/ef89356f.jpg",
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/1f87b0d5.jpg",
     "id": 29,
-    "nome": "Maris Berbert e Família",
     "numero": 29,
+    "nome": "Maris Berbert e Família",
+    "foto": "imagens/familias/1f87b0d5.jpg",
     "sorteado": false
   },
   {
@@ -210,10 +222,10 @@
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/4f90a50c.jpg",
     "id": 31,
-    "nome": "Arinaldo e Família",
     "numero": 31,
+    "nome": "Arinaldo e Família",
+    "foto": "imagens/familias/4f90a50c.jpg",
     "sorteado": false
   },
   {
@@ -224,10 +236,10 @@
     "sorteado": false
   },
   {
-    "foto": "imagens/familias/3e3b85d7.jpg",
     "id": 33,
-    "nome": "Paulo Berbert e Família",
     "numero": 33,
+    "nome": "Paulo Berbert e Família",
+    "foto": "imagens/familias/3e3b85d7.jpg",
     "sorteado": false
   },
   {
@@ -697,7 +709,8 @@
     "numero": 100,
     "nome": "Vinícius e Família",
     "foto": "imagens/familias/2384bf6c.png",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
     "id": 101,
@@ -711,7 +724,8 @@
     "numero": 102,
     "nome": "Wilson Grosman",
     "foto": "imagens/familias/b12cce75.jpg",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
     "id": 103,
@@ -732,7 +746,8 @@
     "numero": 105,
     "nome": "Vilson e Família",
     "foto": "imagens/familias/624c49df.png",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
     "id": 106,
@@ -795,7 +810,8 @@
     "numero": 114,
     "nome": "Gilberto e Nair",
     "foto": "imagens/familias/2485215e.jpg",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
     "id": 115,

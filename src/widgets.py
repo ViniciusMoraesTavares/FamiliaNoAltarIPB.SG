@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QFrame, QVBoxLayout, QLabel, QHBoxLayout,
     QPushButton, QWidget, QLineEdit, QToolButton, QDialog, QApplication
 )
-from PySide6.QtCore import Qt, Signal, QSize, QTimer, QPropertyAnimation, QEasingCurve, Property
+from PySide6.QtCore import Qt, Signal, QSize, QTimer, QPropertyAnimation, QEasingCurve, Property, QPoint
 from PySide6.QtGui import QFont, QPixmap, QMovie, QColor
 import os
 from .styles import AppStyles
@@ -234,22 +234,30 @@ class FamilyCard(BaseCard):
     def __init__(self, familia, parent=None):
         super().__init__(parent)
         self.familia = familia
+        self._loaded = False
+        self._abs_image = None
+        self._thumb_abs = None
+        self._img_container = None
         self._setup_ui()
     
     def _setup_ui(self):
         img_container = ImageContainer(self)
         relativo = self.familia.get("foto", "")
-        caminho = os.path.join(BASE_PATH, relativo) if not os.path.isabs(relativo) else relativo
-
-        if os.path.exists(caminho):
-            pixmap = QPixmap(caminho).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self._abs_image = os.path.join(BASE_PATH, relativo) if relativo and not os.path.isabs(relativo) else relativo
+        self._thumb_abs = self._compute_thumb_abs(relativo)
+        if self._thumb_abs and os.path.exists(self._thumb_abs):
+            pixmap = QPixmap(self._thumb_abs).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            img_container.set_image(pixmap)
+            self._loaded = True
+        elif self._abs_image and os.path.exists(self._abs_image):
+            pixmap = QPixmap(self._abs_image).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             img_container.set_image(pixmap)
         else:
             img_container.clear()
 
-            
-        img_container.image_label.mousePressEvent = lambda event: self._on_image_clicked(caminho)
+        img_container.image_label.mousePressEvent = lambda event: self._on_image_clicked(self._abs_image or self._thumb_abs)
         self.layout.addWidget(img_container)
+        self._img_container = img_container
         
         nome_label = QLabel(self.familia.get("nome", "Sem Nome"))
         nome_label.setAlignment(Qt.AlignCenter)
@@ -296,6 +304,30 @@ class FamilyCard(BaseCard):
         if os.path.exists(caminho_imagem):
             viewer = FullscreenImageViewer(caminho_imagem, self)
             viewer.exec_()
+
+    def _compute_thumb_abs(self, rel):
+        if not rel:
+            return None
+        base = os.path.basename(rel)
+        name, _ = os.path.splitext(base)
+        thumb_rel = os.path.join("imagens", "thumbs", f"{name}_thumb.jpg")
+        return os.path.join(BASE_PATH, thumb_rel)
+
+    def ensure_image_loaded(self, viewport_top_y, viewport_bottom_y):
+        if self._loaded:
+            return
+        if not self._img_container:
+            return
+        pos = self.mapToGlobal(QPoint(0, 0))
+        y_top = pos.y()
+        y_bottom = y_top + self.height()
+        if y_bottom < viewport_top_y or y_top > viewport_bottom_y:
+            return
+        path = self._thumb_abs if self._thumb_abs and os.path.exists(self._thumb_abs) else self._abs_image
+        if path and os.path.exists(path):
+            pixmap = QPixmap(path).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self._img_container.set_image(pixmap)
+            self._loaded = True
 
 class FullscreenImageViewer(QDialog):
     def __init__(self, image_path, parent=None):
