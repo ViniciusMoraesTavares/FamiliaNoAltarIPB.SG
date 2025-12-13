@@ -11,6 +11,7 @@ from datetime import datetime
 
 from src.adicionar_familia    import JanelaAdicionarFamilia
 from src.janela_confirmacao    import JanelaConfirmacao
+from src.delete_confirm_dialog import DeleteConfirmDialog
 from src.filtro_familias       import nao_sorteadas, sorteadas, buscar
 from src.data_manager import DataManager
 from src.widgets import (
@@ -229,49 +230,7 @@ class PainelPrincipal(QWidget):
         titulo = TitleLabel("Família no Altar - IPB.SG", size=28)
         header_layout.addWidget(titulo)
 
-        botoes_layout = QHBoxLayout()
-        botoes_layout.setSpacing(15)
-
-        self.numero_input_panel = QLineEdit()
-        self.numero_input_panel.setPlaceholderText("Número")
-        self.numero_input_panel.setValidator(QIntValidator(1, 999, self))
-        self.numero_input_panel.setFixedWidth(120)
-        self.numero_input_panel.setStyleSheet(AppStyles.input_style())
-        self.numero_input_panel.setVisible(False)
-        self.numero_input_panel.setEnabled(False)
-        self.numero_input_panel.returnPressed.connect(self._on_enter_panel_numero)
-        botoes_layout.addWidget(self.numero_input_panel)
-
-        btn_adicionar = QPushButton("Adicionar Família")
-        btn_adicionar.clicked.connect(self.janela_adicionar.show)
-        btn_adicionar.setStyleSheet(AppStyles.button_style())
-
-        btn_sorteio = QPushButton("Iniciar Sorteio")
-        btn_sorteio.clicked.connect(self.abrir_sorteio)
-        btn_sorteio.setStyleSheet(AppStyles.button_style())
-
-        self.btn_fechar_sorteio = QPushButton("Fechar Sorteio")
-        self.btn_fechar_sorteio.clicked.connect(self.fechar_sorteio)
-        self.btn_fechar_sorteio.setStyleSheet(AppStyles.button_style())
-        self.btn_fechar_sorteio.setVisible(False)
-
-        self.botao_finalizar = QPushButton("Finalizar Sorteio")
-        self.botao_finalizar.clicked.connect(self.finalizar_sorteio_panel)
-        self.botao_finalizar.setStyleSheet(AppStyles.button_style())
-        self.botao_finalizar.setEnabled(False)
-
-        self.btn_resetar = QPushButton("Resetar Sorteio")
-        self.btn_resetar.clicked.connect(self.resetar_sorteio_callback)
-        self.btn_resetar.setStyleSheet(AppStyles.button_style())
-        self.btn_resetar.setVisible(False)
-
-        for btn in [btn_adicionar, btn_sorteio, self.btn_fechar_sorteio, 
-                   self.botao_finalizar, self.btn_resetar]:
-            btn.setMinimumWidth(150)
-            botoes_layout.addWidget(btn)
-
-        botoes_layout.addStretch()
-        header_layout.addLayout(botoes_layout)
+        # Removido bloco de botões do topo; controles estarão no menu lateral
 
         main_layout.addWidget(header)
 
@@ -283,23 +242,67 @@ class PainelPrincipal(QWidget):
         sidebar.setFixedWidth(240)
         sidebar.setStyleSheet("""
             QFrame { background-color: #FAFAFA; border-right: 1px solid #E0E0E0; }
-            QPushButton { text-align: left; padding: 12px 16px; border: none; border-radius: 0; font-weight: 600; color: #424242; }
-            QPushButton:hover { background-color: #F0F0F0; }
+            QPushButton {
+                text-align: left;
+                padding: 12px 16px;
+                border: 1px solid #E0E0E0;
+                border-radius: 10px;
+                font-weight: 600;
+                color: #424242;
+                background-color: white;
+                margin: 8px;
+            }
+            QPushButton:hover { background-color: #F5F5F5; }
         """)
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.setSpacing(0)
 
-        btn_nav_painel = QPushButton("Painel")
         btn_nav_sorteio = QPushButton("Sorteio")
-        btn_nav_cadastro = QPushButton("Cadastro")
-        btn_nav_painel.clicked.connect(lambda: None)
+        btn_nav_sorteio.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; border: none; border-radius: 10px; } QPushButton:hover { background-color: #43A047; }")
+        btn_nav_cadastro = QPushButton("Adicionar Família")
         btn_nav_sorteio.clicked.connect(self.abrir_sorteio)
         btn_nav_cadastro.clicked.connect(self.janela_adicionar.show)
-        sidebar_layout.addWidget(btn_nav_painel)
         sidebar_layout.addWidget(btn_nav_sorteio)
         sidebar_layout.addWidget(btn_nav_cadastro)
+        # Controles do sorteio (visíveis apenas quando a tela de sorteio estiver ativa)
+        controls_container = QFrame()
+        controls_container.setStyleSheet("QFrame { background: transparent; }")
+        controls_layout = QVBoxLayout(controls_container)
+        controls_layout.setContentsMargins(12, 12, 12, 12)
+        controls_layout.setSpacing(8)
+
+        numero_row = QHBoxLayout()
+        numero_row.setContentsMargins(0, 0, 0, 0)
+        numero_row.setSpacing(8)
+        self.numero_input_panel = QLineEdit()
+        self.numero_input_panel.setPlaceholderText("Número")
+        self.numero_input_panel.setValidator(QIntValidator(1, 999, self))
+        self.numero_input_panel.setMaxLength(3)
+        self.numero_input_panel.setFixedWidth(100)
+        self.numero_input_panel.setStyleSheet(AppStyles.input_style())
+        self.numero_input_panel.setVisible(False)
+        self.numero_input_panel.setEnabled(False)
+        self.numero_input_panel.returnPressed.connect(self._on_enter_panel_numero)
+        self.btn_confirmar_sidebar = QPushButton("Confirmar")
+        self.btn_confirmar_sidebar.setStyleSheet("QPushButton { background-color: #2E7D32; color: white; padding: 8px 12px; border-radius: 6px; } QPushButton:disabled { background-color: #A5D6A7; }")
+        self.btn_confirmar_sidebar.setEnabled(False)
+        self.btn_confirmar_sidebar.clicked.connect(self.finalizar_sorteio_panel)
+        numero_row.addWidget(self.numero_input_panel)
+        numero_row.addWidget(self.btn_confirmar_sidebar)
+
+        self.btn_fechar_sorteio = QPushButton("Fechar Sorteio")
+        self.btn_fechar_sorteio.setStyleSheet("QPushButton { background-color: #9E9E9E; color: white; padding: 8px 12px; border-radius: 6px; }")
+        self.btn_fechar_sorteio.clicked.connect(self.fechar_sorteio)
+        self.btn_fechar_sorteio.setVisible(False)
+
+        controls_layout.addLayout(numero_row)
+        controls_layout.addWidget(self.btn_fechar_sorteio)
+        controls_container.setVisible(True)
+
+        sidebar_layout.addWidget(controls_container)
         sidebar_layout.addStretch()
+        self._sidebar_controls = controls_container
 
         right_content = QWidget()
         right_layout = QVBoxLayout(right_content)
@@ -470,7 +473,8 @@ class PainelPrincipal(QWidget):
     def verificar_reset_necessario(self):
         familias = self.data_manager.carregar_familias()
         todas = all(f.get("sorteado", False) for f in familias)
-        self.btn_resetar.setVisible(todas)
+        if hasattr(self, "btn_resetar") and self.btn_resetar:
+            self.btn_resetar.setVisible(todas)
 
     def _criar_item_lista(self, familia):
         item = QFrame()
@@ -522,7 +526,6 @@ class PainelPrincipal(QWidget):
         self.janela_sorteio.show()
         QTimer.singleShot(100, self.janela_sorteio.showFullScreen)
         
-        self.botao_finalizar.setEnabled(True)
         self.btn_fechar_sorteio.setVisible(True)
 
     def fechar_sorteio(self):
@@ -531,7 +534,7 @@ class PainelPrincipal(QWidget):
             self.janela_sorteio = None
             self.btn_fechar_sorteio.setVisible(False)
             self.numero_sorteado = None
-            self.botao_finalizar.setEnabled(False)
+            self.btn_confirmar_sidebar.setEnabled(False)
             self.numero_input_panel.clear()
             self.numero_input_panel.setVisible(False)
             self.numero_input_panel.setEnabled(False)
@@ -541,13 +544,14 @@ class PainelPrincipal(QWidget):
     
     def on_sorteio_realizado(self, numero):
         self.numero_sorteado = numero
-        self.botao_finalizar.setEnabled(True)
+        self.btn_confirmar_sidebar.setEnabled(True)
 
     def _on_sorteio_ready(self):
         self.numero_input_panel.setEnabled(True)
         self.numero_input_panel.setVisible(True)
         self.numero_input_panel.setFocus()
         self.notification.show_message("Pronto para digitar o número", "info")
+        self.btn_fechar_sorteio.setVisible(True)
 
     def _on_enter_panel_numero(self):
         texto = self.numero_input_panel.text().strip()
@@ -585,7 +589,7 @@ class PainelPrincipal(QWidget):
             if self.data_manager.salvar_familias(familias):
                 if self.data_manager.salvar_sorteio(self.numero_sorteado):
                     self.numero_sorteado = None
-                    self.botao_finalizar.setEnabled(False)
+                    self.btn_confirmar_sidebar.setEnabled(False)
                     self.btn_fechar_sorteio.setVisible(False)
 
                     if self.janela_sorteio:
@@ -619,7 +623,7 @@ class PainelPrincipal(QWidget):
 
     def excluir_familia(self, familia):
         texto = f"Tem certeza que deseja excluir a família '{familia['nome']}'?"
-        dlg = JanelaConfirmacao(texto, parent=self)
+        dlg = DeleteConfirmDialog(texto, parent=self)
         dlg.confirmado.connect(lambda: self._executar_exclusao(familia))
         dlg.show()
 

@@ -461,12 +461,8 @@ class SearchBar(QFrame):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 0, 10, 0)
         layout.setSpacing(5)
-        
-        search_icon = QLabel("🔍")
-        search_icon.setStyleSheet("border: none; background: transparent;")
-        
         self.input = QLineEdit()
-        self.input.setPlaceholderText("Pesquisar por nome ou número...")
+        self.input.setPlaceholderText("Pesquisar por nome ou número")
         self.input.setStyleSheet("""
             QLineEdit {
                 border: none;
@@ -477,7 +473,6 @@ class SearchBar(QFrame):
         """)
         self.input.textChanged.connect(self.textChanged.emit)
         
-        layout.addWidget(search_icon)
         layout.addWidget(self.input)
     
     def text(self):

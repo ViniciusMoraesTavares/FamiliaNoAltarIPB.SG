@@ -492,7 +492,8 @@
     "numero": 69,
     "nome": "Juninho Berbert e Família",
     "foto": "imagens/familias/909db6b0.png",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
     "id": 70,
@@ -768,7 +769,8 @@
     "numero": 108,
     "nome": "Brenner e Família",
     "foto": "imagens/familias/9e67cebd.png",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   },
   {
     "id": 109,
@@ -846,6 +848,7 @@
     "numero": 119,
     "nome": "Esmael e Miraci",
     "foto": "imagens/familias/460737d1.png",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "13/12/2025"
   }
 ]
