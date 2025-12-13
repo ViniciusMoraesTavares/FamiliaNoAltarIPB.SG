@@ -5,6 +5,7 @@ from PySide6.QtGui import QPixmap, QFont
 from PySide6.QtCore import Qt
 import os
 from src.data_manager import DataManager
+from src.status_change_dialog import StatusChangeDialog
 import sys
 
 if getattr(sys, 'frozen', False):
@@ -56,6 +57,10 @@ class JanelaEditarFamilia(QWidget):
         salvar_btn.clicked.connect(self.salvar_edicao)
         botoes.addWidget(salvar_btn)
 
+        alterar_status_btn = QPushButton("Alterar Status")
+        alterar_status_btn.clicked.connect(self.alterar_status)
+        botoes.addWidget(alterar_status_btn)
+
         cancelar_btn = QPushButton("❌ Cancelar")
         cancelar_btn.clicked.connect(self.close)
         botoes.addWidget(cancelar_btn)
@@ -100,3 +105,29 @@ class JanelaEditarFamilia(QWidget):
         if self.callback_atualizacao:
             self.callback_atualizacao()
         self.close()
+
+    def alterar_status(self):
+        atual = bool(self.familia.get("sorteado", False))
+        novo = not atual
+        texto = "Esta ação irá alterar o status da família."
+        impactos = [
+            "Marcar como sorteada define a data de sorteio para hoje.",
+            "Marcar como não sorteada remove a data de sorteio.",
+            "Filtros e indicadores no painel serão atualizados.",
+        ]
+        dlg = StatusChangeDialog(texto, impactos, parent=self)
+        dlg.confirmado.connect(lambda: self._confirmar_alteracao_status(novo))
+        dlg.show()
+
+    def _confirmar_alteracao_status(self, novo_status):
+        try:
+            ok = self.data_manager.alterar_status_familia(self.familia.get("numero"), novo_status)
+            if not ok:
+                QMessageBox.warning(self, "Erro", "Não foi possível alterar o status.")
+                return
+            self.familia["sorteado"] = bool(novo_status)
+            if self.callback_atualizacao:
+                self.callback_atualizacao()
+            QMessageBox.information(self, "Sucesso", "Status alterado com sucesso.")
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Falha ao alterar status: {str(e)}")

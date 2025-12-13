@@ -375,3 +375,23 @@ class DataManager:
         a = self.verificar_integridade_dados()
         b = self.verificar_integridade_sorteio()
         return a and b
+
+    def alterar_status_familia(self, numero, novo_status: bool):
+        try:
+            familias = self.carregar_familias()
+            familia = next((f for f in familias if str(f.get("numero")) == str(numero)), None)
+            if not familia:
+                return False
+            familia["sorteado"] = bool(novo_status)
+            if familia["sorteado"]:
+                from datetime import datetime
+                familia["data_sorteio"] = datetime.now().strftime("%d/%m/%Y")
+            else:
+                familia.pop("data_sorteio", None)
+            ok = self.salvar_familias(familias)
+            if ok:
+                logging.info(f"Status da família {familia.get('nome')} ({numero}) alterado para {familia['sorteado']}")
+            return ok
+        except Exception as e:
+            logging.error(f"Erro ao alterar status da família {numero}: {str(e)}")
+            return False
