@@ -4,16 +4,14 @@
     "numero": 1,
     "nome": "Tereza e Valter",
     "foto": "imagens/familias/1bf8e31b.jpg",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 2,
     "numero": 2,
     "nome": "Eliene Assis",
     "foto": "imagens/familias/8102ec18.jpg",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 3,
@@ -27,24 +25,21 @@
     "numero": 4,
     "nome": "Kauê",
     "foto": "imagens/familias/9921e770.jpg",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 5,
     "numero": 5,
     "nome": "Débora Melo e Família",
     "foto": "imagens/familias/fcda9fd7.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 6,
     "numero": 6,
     "nome": "Cláudio e Família",
     "foto": "imagens/familias/a243bfc1.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 7,
@@ -65,32 +60,28 @@
     "numero": 9,
     "nome": "Gilli e Família",
     "foto": "imagens/familias/e19ceb4e.jpg",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 10,
     "numero": 10,
     "nome": "Erasmo e Família",
     "foto": "imagens/familias/85365f80.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 11,
     "numero": 11,
     "nome": "Rafael e Letícia",
     "foto": "imagens/familias/e6d75795.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 12,
     "numero": 12,
     "nome": "Weverson e Família",
     "foto": "imagens/familias/79a410e1.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 13,
@@ -111,16 +102,14 @@
     "numero": 15,
     "nome": "Caio e Família",
     "foto": "imagens/familias/1d71d868.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 16,
     "numero": 16,
     "nome": "José Moreira e Família",
     "foto": "imagens/familias/7083fcc0.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 17,
@@ -141,8 +130,7 @@
     "numero": 19,
     "nome": "Ronaldo e Família",
     "foto": "imagens/familias/65238c48.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 20,
@@ -492,8 +480,7 @@
     "numero": 69,
     "nome": "Juninho Berbert e Família",
     "foto": "imagens/familias/909db6b0.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 70,
@@ -710,8 +697,7 @@
     "numero": 100,
     "nome": "Vinícius e Família",
     "foto": "imagens/familias/2384bf6c.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 101,
@@ -725,8 +711,7 @@
     "numero": 102,
     "nome": "Wilson Grosman",
     "foto": "imagens/familias/b12cce75.jpg",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 103,
@@ -747,8 +732,7 @@
     "numero": 105,
     "nome": "Vilson e Família",
     "foto": "imagens/familias/624c49df.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 106,
@@ -769,8 +753,7 @@
     "numero": 108,
     "nome": "Brenner e Família",
     "foto": "imagens/familias/9e67cebd.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 109,
@@ -812,8 +795,7 @@
     "numero": 114,
     "nome": "Gilberto e Nair",
     "foto": "imagens/familias/2485215e.jpg",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   },
   {
     "id": 115,
@@ -848,7 +830,6 @@
     "numero": 119,
     "nome": "Esmael e Miraci",
     "foto": "imagens/familias/460737d1.png",
-    "sorteado": true,
-    "data_sorteio": "13/12/2025"
+    "sorteado": false
   }
 ]

@@ -298,6 +298,11 @@ class PainelPrincipal(QWidget):
 
         controls_layout.addLayout(numero_row)
         controls_layout.addWidget(self.btn_fechar_sorteio)
+        self.btn_resetar = QPushButton("Resetar Sorteio")
+        self.btn_resetar.setStyleSheet("QPushButton { background-color: #FFB300; color: #1F2937; padding: 8px 12px; border-radius: 6px; } QPushButton:hover { background-color: #FFA000; }")
+        self.btn_resetar.clicked.connect(self.resetar_sorteio_callback)
+        self.btn_resetar.setVisible(False)
+        controls_layout.addWidget(self.btn_resetar)
         controls_container.setVisible(True)
 
         sidebar_layout.addWidget(controls_container)
@@ -407,7 +412,8 @@ class PainelPrincipal(QWidget):
         
         if self.data_manager.resetar_sorteio():
             self.atualizar_galeria()
-            self.botao_finalizar.setEnabled(False)
+            if hasattr(self, "btn_confirmar_sidebar") and self.btn_confirmar_sidebar:
+                self.btn_confirmar_sidebar.setEnabled(False)
             self.numero_sorteado = None
             self.notification.show_message(
                 "Sorteio resetado com sucesso! Novos números foram distribuídos.",
@@ -440,6 +446,10 @@ class PainelPrincipal(QWidget):
             familias = sorteadas(familias)
 
         familias = buscar(familias, self.termo_pesquisa)
+        try:
+            familias = sorted(familias, key=lambda f: int(f.get("numero", 0)))
+        except Exception:
+            familias = sorted(familias, key=lambda f: str(f.get("numero", "")))
 
         container = QWidget()
         container.setStyleSheet("background-color: transparent;")

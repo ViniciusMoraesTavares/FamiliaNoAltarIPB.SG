@@ -1,77 +1,107 @@
 from PySide6.QtCore import Signal, Qt  
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QMessageBox
-from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QMessageBox, QHBoxLayout, QFrame
+from PySide6.QtGui import QFont, QPixmap
 import os
 from src.data_manager import DataManager
 
-class JanelaAdicionarFamilia(QWidget):
+class JanelaAdicionarFamilia(QDialog):
     familia_adicionada = Signal()  
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Adicionar Família")
         self.setStyleSheet("""
-            QWidget {
-                background-color: white;
-                border-radius: 10px;
-            }
-            QLabel {
-                font-size: 16px;
-                color: #3D6D43;
-                font-weight: bold;
-            }
+            QDialog { background-color: #FFFFFF; border-radius: 10px; }
+            QLabel#title { font-size: 20px; color: #1F2937; font-weight: 700; }
+            QLabel { font-size: 14px; color: #374151; }
             QLineEdit {
                 padding: 10px;
                 font-size: 16px;
-                border: 2px solid #3D6D43;
+                border: 1px solid #D1D5DB;
                 border-radius: 8px;
-                background-color: #F1F1F1;
+                background-color: #FFFFFF;
             }
-            QPushButton {
-                padding: 10px;
-                background-color: #3D6D43;
+            QPushButton#primary {
+                padding: 10px 16px;
+                background-color: #2E7D32;
                 color: white;
                 border: none;
-                border-radius: 10px;
-                font-size: 16px;
-                font-weight: bold;
-                margin-top: 20px;
-                transition: background-color 0.3s ease;
-            }
-            QPushButton:hover {
-                background-color: #72A06E;
-            }
-            QPushButton:pressed {
-                background-color: #2F4F28;
-            }
-            QFileDialog {
+                border-radius: 8px;
                 font-size: 14px;
-                color: #3D6D43;
+                font-weight: 700;
+            }
+            QPushButton#primary:hover { background-color: #1B5E20; }
+            QPushButton#secondary {
+                padding: 10px 16px;
+                background-color: #FFFFFF;
+                color: #374151;
+                border: 1px solid #D1D5DB;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            QPushButton#secondary:hover { background-color: #F3F4F6; }
+            QFrame#preview {
+                border: 1px solid #E5E7EB;
+                border-radius: 8px;
+                background: #FAFAFA;
             }
         """)
-        self.resize(400, 250)
+        self.resize(520, 360)
         
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(20, 20, 20, 20)
+        self.layout.setSpacing(16)
 
         self.title = QLabel("Adicionar Nova Família")
+        self.title.setObjectName("title")
         self.title.setAlignment(Qt.AlignCenter)
-        self.title.setFont(QFont("Arial", 18, QFont.Bold))
-        self.title.setStyleSheet("color: #3D6D43;")
         self.layout.addWidget(self.title)
 
-        self.label_nome = QLabel("Nome da Família:")
+        form_row = QHBoxLayout()
+        form_row.setSpacing(12)
+        left = QVBoxLayout()
+        right = QVBoxLayout()
+
+        self.label_nome = QLabel("Nome da Família")
         self.input_nome = QLineEdit()
-        self.layout.addWidget(self.label_nome)
-        self.layout.addWidget(self.input_nome)
+        left.addWidget(self.label_nome)
+        left.addWidget(self.input_nome)
 
-        self.botao_escolher_foto = QPushButton("Escolher Foto")
+        self.preview_frame = QFrame()
+        self.preview_frame.setObjectName("preview")
+        preview_layout = QVBoxLayout(self.preview_frame)
+        preview_layout.setContentsMargins(8, 8, 8, 8)
+        self.preview_label = QLabel("Prévia da foto")
+        self.preview_label.setAlignment(Qt.AlignCenter)
+        self.preview_pix = QLabel()
+        self.preview_pix.setAlignment(Qt.AlignCenter)
+        preview_layout.addWidget(self.preview_label)
+        preview_layout.addWidget(self.preview_pix)
+        right.addWidget(self.preview_frame)
+
+        form_row.addLayout(left, 1)
+        form_row.addLayout(right, 1)
+        self.layout.addLayout(form_row)
+
+        actions = QHBoxLayout()
+        actions.setSpacing(10)
+        self.botao_escolher_foto = QPushButton("Selecionar Foto")
+        self.botao_escolher_foto.setObjectName("secondary")
         self.botao_escolher_foto.clicked.connect(self.escolher_foto)
-        self.layout.addWidget(self.botao_escolher_foto)
+        actions.addWidget(self.botao_escolher_foto)
 
-        self.botao_salvar = QPushButton("Salvar Família")
+        self.botao_salvar = QPushButton("Salvar")
+        self.botao_salvar.setObjectName("primary")
         self.botao_salvar.clicked.connect(self.salvar_familia)
-        self.layout.addWidget(self.botao_salvar)
+        actions.addWidget(self.botao_salvar)
+
+        self.botao_cancelar = QPushButton("Cancelar")
+        self.botao_cancelar.setObjectName("secondary")
+        self.botao_cancelar.clicked.connect(self.reject)
+        actions.addWidget(self.botao_cancelar)
+
+        self.layout.addLayout(actions)
 
         self.caminho_foto = None
         self.data_manager = DataManager()
@@ -81,7 +111,10 @@ class JanelaAdicionarFamilia(QWidget):
         caminho, _ = file_dialog.getOpenFileName(self, "Escolher Foto", "", "Imagens (*.png *.jpg *.jpeg)")
         if caminho:
             self.caminho_foto = caminho
-            QMessageBox.information(self, "Foto Selecionada", "Foto selecionada com sucesso!")
+            pix = QPixmap(caminho)
+            if not pix.isNull():
+                scaled = pix.scaled(220, 160, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                self.preview_pix.setPixmap(scaled)
 
     def salvar_familia(self):
         nome = self.input_nome.text().strip()
@@ -97,4 +130,4 @@ class JanelaAdicionarFamilia(QWidget):
             return
         QMessageBox.information(self, "Sucesso", f"Família '{nome}' adicionada com sucesso!")
         self.familia_adicionada.emit()
-        self.close()
+        self.accept()
