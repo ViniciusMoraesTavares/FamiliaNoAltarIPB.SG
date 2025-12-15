@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QHBoxLayout, QMessageBox
+    QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QFileDialog, QHBoxLayout, QMessageBox, QFrame
 )
 from PySide6.QtGui import QPixmap, QFont
 from PySide6.QtCore import Qt
@@ -26,47 +26,80 @@ class JanelaEditarFamilia(QWidget):
 
         os.makedirs(FOTOS_PATH, exist_ok=True)
 
-        self.setWindowTitle("✏️ Editar Família")
-        self.setMinimumSize(400, 300)
+        self.setWindowTitle("Editar Família")
+        self.setMinimumSize(560, 420)
         self.setWindowModality(Qt.ApplicationModal)
 
         self.init_ui()
 
     def init_ui(self):
-        layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+        root = QHBoxLayout(self)
+        root.setContentsMargins(20, 20, 20, 20)
+        root.setSpacing(20)
+
+        # Área de prévia da foto
+        photo_card = QFrame()
+        photo_card.setStyleSheet("QFrame { background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; }")
+        photo_layout = QVBoxLayout(photo_card)
+        photo_layout.setContentsMargins(12, 12, 12, 12)
+        photo_layout.setSpacing(10)
 
         self.foto_label = QLabel()
         self.foto_label.setAlignment(Qt.AlignCenter)
+        self.foto_label.setMinimumSize(260, 260)
         self.carregar_foto()
-        layout.addWidget(self.foto_label)
+        photo_layout.addWidget(self.foto_label)
 
-        btn_trocar_foto = QPushButton("📷 Trocar Foto")
+        btn_trocar_foto = QPushButton("Trocar foto")
+        btn_trocar_foto.setStyleSheet("QPushButton { background-color: #FFFFFF; color: #374151; border: 1px solid #D1D5DB; border-radius: 8px; padding: 8px 12px; } QPushButton:hover { background-color: #F3F4F6; }")
         btn_trocar_foto.clicked.connect(self.selecionar_foto)
-        layout.addWidget(btn_trocar_foto, alignment=Qt.AlignCenter)
+        photo_layout.addWidget(btn_trocar_foto, alignment=Qt.AlignCenter)
 
+        # Área de edição (direita)
+        form = QVBoxLayout()
+        form.setContentsMargins(0, 0, 0, 0)
+        form.setSpacing(12)
+
+        nome_label = QLabel("Nome da família")
+        nome_label.setStyleSheet("color: #374151; font-size: 13px; margin-bottom: 4px;")
         self.nome_input = QLineEdit(self.familia.get("nome", ""))
-        self.nome_input.setPlaceholderText("Nome da família")
-        self.nome_input.setStyleSheet("font-size: 16px; padding: 8px;")
-        layout.addWidget(self.nome_input)
+        self.nome_input.setPlaceholderText("Ex.: Família Silva")
+        self.nome_input.setStyleSheet("QLineEdit { padding: 10px; font-size: 16px; border: 1px solid #D1D5DB; border-radius: 8px; background: #FFFFFF; } QLineEdit:focus { border-color: #2c4b23; }")
+        form.addWidget(nome_label)
+        form.addWidget(self.nome_input)
 
-        botoes = QHBoxLayout()
+        # Controle de status (toggle switch)
+        status_label = QLabel("Status")
+        status_label.setStyleSheet("color: #374151; font-size: 13px; margin-bottom: 4px;")
+        form.addWidget(status_label)
+        self.status_button = QPushButton()
+        self.status_button.setCursor(Qt.PointingHandCursor)
+        self.status_button.setFixedHeight(36)
+        self.status_button.setStyleSheet("QPushButton { border-radius: 18px; padding: 6px 14px; font-weight: 700; }")
+        self._status_value = bool(self.familia.get("sorteado", False))
+        self._update_status_button_style()
+        self.status_button.clicked.connect(self._on_status_button_clicked)
+        form.addWidget(self.status_button)
+        status_hint = QLabel("Clique para alterar o status da família")
+        status_hint.setWordWrap(True)
+        status_hint.setStyleSheet("color: #6B7280; font-size: 12px; font-style: italic; margin-top: 4px;")
+        form.addWidget(status_hint)
 
-        salvar_btn = QPushButton("💾 Salvar")
+        # Ações
+        actions = QHBoxLayout()
+        actions.addStretch(1)
+        salvar_btn = QPushButton("Salvar")
+        salvar_btn.setStyleSheet("QPushButton { background-color: #2c4b23; color: white; border: none; border-radius: 8px; padding: 10px 16px; font-weight: 700; } QPushButton:hover { background-color: #243f1d; }")
         salvar_btn.clicked.connect(self.salvar_edicao)
-        botoes.addWidget(salvar_btn)
-
-        alterar_status_btn = QPushButton("Alterar Status")
-        alterar_status_btn.clicked.connect(self.alterar_status)
-        botoes.addWidget(alterar_status_btn)
-
-        cancelar_btn = QPushButton("❌ Cancelar")
+        cancelar_btn = QPushButton("Cancelar")
+        cancelar_btn.setStyleSheet("QPushButton { background-color: #FFFFFF; color: #374151; border: 1px solid #D1D5DB; border-radius: 8px; padding: 10px 16px; } QPushButton:hover { background-color: #F3F4F6; }")
         cancelar_btn.clicked.connect(self.close)
-        botoes.addWidget(cancelar_btn)
+        actions.addWidget(cancelar_btn)
+        actions.addWidget(salvar_btn)
+        form.addLayout(actions)
 
-        layout.addLayout(botoes)
-        self.setLayout(layout)
+        root.addWidget(photo_card, 0)
+        root.addLayout(form, 1)
 
     def carregar_foto(self):
         caminho = self.familia.get("foto", "")
@@ -86,7 +119,7 @@ class JanelaEditarFamilia(QWidget):
         if caminho:
             self.caminho_foto = caminho
             QMessageBox.information(self, "Foto Selecionada", "Foto selecionada com sucesso!")
-            pixmap = QPixmap(caminho).scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pixmap = QPixmap(caminho).scaled(300, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.foto_label.setPixmap(pixmap)
 
     def _foto_absoluta(self, rel_ou_abs):
@@ -106,6 +139,45 @@ class JanelaEditarFamilia(QWidget):
         if self.callback_atualizacao:
             self.callback_atualizacao()
         self.close()
+
+    def _update_status_button_style(self):
+        if self._status_value:
+            self.status_button.setText("✓ Sorteada")
+            self.status_button.setStyleSheet(
+                "QPushButton { background-color: #2c4b23; color: #FFFFFF; border: none; border-radius: 18px; padding: 6px 14px; font-weight: 700; }"
+                "QPushButton:hover { background-color: #243f1d; }"
+            )
+        else:
+            self.status_button.setText("⌛ Aguardando sorteio")
+            self.status_button.setStyleSheet(
+                "QPushButton { background-color: #E5E7EB; color: #374151; border: 1px solid #D1D5DB; border-radius: 18px; padding: 6px 14px; font-weight: 700; }"
+                "QPushButton:hover { background-color: #D1D5DB; }"
+            )
+
+    def _on_status_button_clicked(self):
+        novo = not self._status_value
+        from src.status_change_dialog import StatusChangeDialog
+        texto = "Confirmar alteração de status da família?"
+        impactos = [
+            "Sorteada: define a data de sorteio para hoje.",
+            "Aguardando: remove a data de sorteio.",
+            "A interface será atualizada imediatamente."
+        ]
+        dlg = StatusChangeDialog(texto, impactos, parent=self)
+        def on_confirm():
+            ok = self.data_manager.alterar_status_familia(self.familia.get("numero"), novo)
+            if ok:
+                self._status_value = novo
+                self._update_status_button_style()
+                self.familia["sorteado"] = novo
+                if self.callback_atualizacao:
+                    self.callback_atualizacao()
+            # se falhar, mantém estado visual anterior
+        def on_cancel():
+            pass
+        dlg.confirmado.connect(on_confirm)
+        dlg.cancelado.connect(on_cancel)
+        dlg.show()
 
     def alterar_status(self):
         atual = bool(self.familia.get("sorteado", False))
