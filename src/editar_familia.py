@@ -70,10 +70,9 @@ class JanelaEditarFamilia(QWidget):
 
     def carregar_foto(self):
         caminho = self.familia.get("foto", "")
-        if not os.path.isabs(caminho):
-            caminho = os.path.join(BASE_PATH, caminho)
-        if os.path.exists(caminho):
-            pixmap = QPixmap(caminho).scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        abs_path = self.data_manager._resolve_photo_abs(caminho) if caminho else ""
+        if abs_path and os.path.exists(abs_path):
+            pixmap = QPixmap(abs_path).scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.foto_label.setPixmap(pixmap)
         else:
             self.foto_label.setText("📷")
