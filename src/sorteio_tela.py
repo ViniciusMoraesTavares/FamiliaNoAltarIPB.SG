@@ -8,7 +8,7 @@ import os
 import sys
 
 from .data_manager import DataManager
-from .widgets import TitleLabel, LoadingOverlay
+from .widgets import TitleLabel
 from .styles import AppStyles
 
 class ResponsiveImage(QLabel):
@@ -64,25 +64,35 @@ class JanelaSorteio(QWidget):
         self.init_ui()
 
     def init_ui(self):
+        self.setFixedSize(1024, 768)
+        self.setStyleSheet("QWidget { background-color: #111827; }")
         self.layout = QVBoxLayout()
-        self.layout.setContentsMargins(50, 30, 50, 30)
-        self.layout.setSpacing(20)
+        self.layout.setContentsMargins(24, 24, 24, 24)
+        self.layout.setSpacing(16)
 
         self.subtitulo = TitleLabel("Última família no Altar", size=40)
         self.layout.addWidget(self.subtitulo)
 
-        self.nome_ultima = TitleLabel("", size=32, color="#004d40")
-        self.layout.addWidget(self.nome_ultima)
+        self.nome_ultima = TitleLabel("", size=32)
 
         self.imagem_ultima = ResponsiveImage(self)
         self.imagem_ultima.setMinimumHeight(600)
         self.layout.addWidget(self.imagem_ultima, stretch=1)
+        # Nome sobreposto à última família
+        self.nome_ultima.setParent(self.imagem_ultima)
+        self.nome_ultima.setStyleSheet(
+            "color: #FFFFFF; background-color: rgba(0,0,0,140); padding: 8px 16px; border-radius: 12px;"
+        )
+        self.nome_ultima.hide()
 
         self.imagem_label = ResponsiveImage(self)
         # Título da família sobre a foto (overlay)
         self.titulo_atual = TitleLabel("", size=48)
         self.titulo_atual.setParent(self.imagem_label)
         self.titulo_atual.hide()
+        self.titulo_atual.setStyleSheet(
+            "color: #FFFFFF; background-color: rgba(0,0,0,140); padding: 10px 20px; border-radius: 12px;"
+        )
         self.layout.addWidget(self.imagem_label)
         self.imagem_label.hide()
         self.imagem_label.set_scale_ratio(0.95)
@@ -109,11 +119,10 @@ class JanelaSorteio(QWidget):
         self.layout.setStretch(4, 0)  # imagem atual (oculta inicialmente)
         self.layout.setStretch(5, 0)  # nome atual (oculto inicialmente)
         
-        self.loading_overlay = LoadingOverlay(self)
-        self.loading_overlay.resize(self.size())
+        # Sem elementos de loading
 
         self.move_to_second_screen()
-        self.showFullScreen()
+        self.show()
 
         self.atualizar_ultimo_sorteado()
         if self._numero_param:
@@ -137,6 +146,7 @@ class JanelaSorteio(QWidget):
                 self.imagem_ultima.set_pixmap(pixmap)
                 QTimer.singleShot(0, self.imagem_ultima._update_scaled)
             self.nome_ultima.setText(familia.get("nome", "Família Sem Nome"))
+            self.nome_ultima.show()
         else:
             self.imagem_ultima.set_pixmap(None)
             self.nome_ultima.setText("Família não encontrada.")
@@ -151,12 +161,9 @@ class JanelaSorteio(QWidget):
         if familia.get("sorteado"):
             self.exibir_mensagem(f"A família número {numero} já foi sorteada.")
             return
-        self.loading_overlay.show()
-        QTimer.singleShot(300, lambda: self.realizar_sorteio(familia))
+        QTimer.singleShot(100, lambda: self.realizar_sorteio(familia))
 
     def realizar_sorteio(self, familia):
-        self.loading_overlay.hide()
-
         self.imagem_ultima.hide()
         self.nome_ultima.hide()
         self.mensagem_label.hide()
@@ -180,7 +187,7 @@ class JanelaSorteio(QWidget):
         self.titulo_atual.setFixedWidth(self.imagem_label.width())
         self.titulo_atual.move(0, 10)
 
-        # Removido título para destacar somente foto e nome
+        # Exibe somente foto e nome sobreposto
 
         self.sorteioRealizado.emit(str(familia.get("numero")))
 
@@ -191,11 +198,14 @@ class JanelaSorteio(QWidget):
     
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if hasattr(self, 'loading_overlay') and self.loading_overlay:
-            self.loading_overlay.resize(self.size())
         if hasattr(self, 'titulo_atual') and self.titulo_atual.isVisible():
             self.titulo_atual.setFixedWidth(self.imagem_label.width())
-            self.titulo_atual.move(0, 10)
+            # posiciona próximo ao topo da imagem atual
+            self.titulo_atual.move(0, 12)
+        if hasattr(self, 'nome_ultima') and self.nome_ultima.isVisible():
+            self.nome_ultima.setFixedWidth(self.imagem_ultima.width())
+            # posiciona próximo ao topo da imagem da última família
+            self.nome_ultima.move(0, 12)
 
     def move_to_second_screen(self):
         screens = QGuiApplication.screens()
@@ -203,11 +213,6 @@ class JanelaSorteio(QWidget):
             second = screens[1]
             geom = second.geometry()
             self.move(geom.left(), geom.top())
-    
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        if self.loading_overlay:
-            self.loading_overlay.resize(self.size())
 
     def obter_caminho_arquivo(self, caminho):
         dm = DataManager()

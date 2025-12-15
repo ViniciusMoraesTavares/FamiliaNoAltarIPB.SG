@@ -4,7 +4,8 @@
     "numero": 1,
     "nome": "Tereza e Valter",
     "foto": "imagens/familias/1bf8e31b.jpg",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "15/12/2025"
   },
   {
     "id": 2,
@@ -130,7 +131,8 @@
     "numero": 19,
     "nome": "Ronaldo e Família",
     "foto": "imagens/familias/65238c48.png",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "15/12/2025"
   },
   {
     "id": 20,
@@ -697,7 +699,8 @@
     "numero": 100,
     "nome": "Vinícius e Família",
     "foto": "imagens/familias/2384bf6c.png",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "15/12/2025"
   },
   {
     "id": 101,
