@@ -12,14 +12,16 @@
     "numero": 2,
     "nome": "Eliene Assis",
     "foto": "imagens/familias/8102ec18.jpg",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "15/12/2025"
   },
   {
     "id": 3,
     "numero": 3,
     "nome": "Jéssica",
     "foto": "imagens/familias/1b6d8708.png",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "15/12/2025"
   },
   {
     "id": 4,
@@ -33,7 +35,8 @@
     "numero": 5,
     "nome": "Débora Melo e Família",
     "foto": "imagens/familias/fcda9fd7.png",
-    "sorteado": false
+    "sorteado": true,
+    "data_sorteio": "15/12/2025"
   },
   {
     "id": 6,

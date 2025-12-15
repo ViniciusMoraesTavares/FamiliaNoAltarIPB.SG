@@ -17,12 +17,12 @@ class NotificationWidget(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedHeight(50)
-        self.setStyleSheet("""
-            QFrame {
-                background-color: #4CAF50;
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: {AppStyles.PRIMARY_COLOR};
                 border-radius: 8px;
                 color: white;
-            }
+            }}
         """)
         
         shadow = AppStyles.get_shadow_effect()
@@ -56,7 +56,7 @@ class NotificationWidget(QFrame):
         
     def show_message(self, message, type="success", auto_hide=True):
         colors = {
-            "success": "#4CAF50",
+            "success": AppStyles.PRIMARY_COLOR,
             "error": "#F44336",
             "info": "#2196F3"
         }
@@ -75,62 +75,33 @@ class NotificationWidget(QFrame):
 class AutoSaveBanner(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(30)
+        self.setFixedHeight(24)
         self.setStyleSheet("""
             QFrame {
-                background-color: #E8F5E9;
-                border-bottom: 1px solid #C8E6C9;
+                background-color: transparent;
             }
             QLabel {
-                color: #2E7D32;
-                font-size: 12px;
+                color: #6B7280;
+                font-size: 11px;
             }
         """)
         
         layout = QHBoxLayout(self)
         layout.setContentsMargins(15, 0, 15, 0)
         
-        self.status_label = QLabel("✓ Todas as alterações salvas")
+        self.status_label = QLabel("")
         layout.addWidget(self.status_label)
         
-        self._opacity = 1.0
-        self._animation = QPropertyAnimation(self, b"opacity")
-        self._animation.setDuration(300)
-        self._animation.setEasingCurve(QEasingCurve.InOutQuad)
-        
-    def get_opacity(self):
-        return self._opacity
-        
-    def set_opacity(self, value):
-        self._opacity = value
-        self.setStyleSheet(f"""
-            QFrame {{
-                background-color: #E8F5E9;
-                border-bottom: 1px solid #C8E6C9;
-                opacity: {value};
-            }}
-            QLabel {{
-                color: #2E7D32;
-                font-size: 12px;
-            }}
-        """)
-        
-    opacity = Property(float, get_opacity, set_opacity)
     
     def show_saving(self):
-        self.status_label.setText("💾 Salvando alterações...")
-        self._animation.setStartValue(0.7)
-        self._animation.setEndValue(1.0)
-        self._animation.start()
+        self.status_label.setText("Salvando...")
         
     def show_saved(self):
-        self.status_label.setText("✓ Todas as alterações salvas")
-        QTimer.singleShot(2000, self.fade_out)
+        from datetime import datetime
+        self.status_label.setText(f"Salvo às {datetime.now().strftime('%H:%M')}")
         
     def fade_out(self):
-        self._animation.setStartValue(1.0)
-        self._animation.setEndValue(0.7)
-        self._animation.start()
+        pass
 
 class BaseCard(QFrame):
     def __init__(self, parent=None):
@@ -494,7 +465,7 @@ class FilterButton(QPushButton):
                 border-radius: 15px;
             }
             QPushButton:checked {
-                background-color: #4CAF50;
+                background-color: #2c4b23;
                 color: white;
             }
             QPushButton:hover:!checked {

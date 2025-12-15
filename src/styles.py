@@ -2,9 +2,9 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QGraphicsDropShadowEffect
 
 class AppStyles:
-    PRIMARY_COLOR = "#4CAF50"
-    PRIMARY_DARK = "#388E3C"
-    PRIMARY_LIGHT = "#A5D6A7"
+    PRIMARY_COLOR = "#2c4b23"
+    PRIMARY_DARK = "#243f1d"
+    PRIMARY_LIGHT = "#9fb38f"
     BACKGROUND_COLOR = "#FFFFFF"
     TEXT_PRIMARY = "#212121"
     TEXT_SECONDARY = "#757575"
@@ -67,7 +67,7 @@ class AppStyles:
                 background: #FAFAFA;
             }
             QLineEdit:focus {
-                border-color: #4CAF50;
+                border-color: #2c4b23;
                 background: white;
             }
         """
