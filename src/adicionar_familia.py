@@ -106,6 +106,16 @@ class JanelaAdicionarFamilia(QDialog):
         self.caminho_foto = None
         self.data_manager = DataManager()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.reset_fields()
+
+    def reset_fields(self):
+        self.input_nome.clear()
+        self.caminho_foto = None
+        self.preview_pix.clear()
+        self.preview_label.setText("Prévia da foto")
+
     def escolher_foto(self):
         file_dialog = QFileDialog()
         caminho, _ = file_dialog.getOpenFileName(self, "Escolher Foto", "", "Imagens (*.png *.jpg *.jpeg)")
