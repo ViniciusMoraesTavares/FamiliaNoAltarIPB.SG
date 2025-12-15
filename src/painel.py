@@ -307,6 +307,23 @@ class PainelPrincipal(QWidget):
 
         sidebar_layout.addWidget(controls_container)
         sidebar_layout.addStretch()
+        # Logo no canto inferior direito do menu lateral
+        logo_label = QLabel()
+        logo_label.setFixedSize(120, 120)
+        logo_label.setAlignment(Qt.AlignCenter)
+        logo_label.setStyleSheet("margin: 0px; padding: 0px;")
+        logo_abs = r"C:\Users\Myelin\OneDrive\Área de Trabalho\Vínicius\IPB_SG\Familia no altar\imagens\logo-ipbsg.png"
+        logo_rel = os.path.join(BASE_PATH, "imagens", "logo-ipbsg.png")
+        logo_path = logo_abs if os.path.exists(logo_abs) else logo_rel
+        if os.path.exists(logo_path):
+            pm = QPixmap(logo_path).scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            logo_label.setPixmap(pm)
+        logo_row = QHBoxLayout()
+        logo_row.setContentsMargins(0, 0, 0, 0)
+        logo_row.setSpacing(0)
+        logo_row.addStretch(1)
+        logo_row.addWidget(logo_label, alignment=Qt.AlignRight | Qt.AlignBottom)
+        sidebar_layout.addLayout(logo_row)
         self._sidebar_controls = controls_container
 
         right_content = QWidget()
