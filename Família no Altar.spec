@@ -9,7 +9,10 @@ a = Analysis(
     ['main.py'],
     pathex=['src'],
     binaries=binaries_pyqt,
-    datas=[('dados', 'dados'), ('imagens', 'imagens'), ('C:\\Users\\Myelin\\OneDrive\\Documentos\\icone.ico', '.')] + datas_pyqt,
+    datas=[
+        ('assets\\icone.ico', 'assets'),
+        ('imagens\\logo-ipbsg.png', 'imagens')
+    ] + datas_pyqt,
     hiddenimports=hiddenimports_pyqt,
     hookspath=[],
     hooksconfig={},
@@ -38,5 +41,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['C:\\Users\\Myelin\\OneDrive\\Documentos\\icone.ico'],
+    icon=['assets\\icone.ico'],
 )

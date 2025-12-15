@@ -1,12 +1,8 @@
 from src.painel import iniciar_painel
 from src.data_manager import DataManager
+from src.version import APP_VERSION
 import os
 import sys
-
-def get_resource_path(relative_path):
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
 
 def criar_atalho_na_area_de_trabalho(nome_atalho="Família no Altar"):
     try:
@@ -31,9 +27,14 @@ def criar_atalho_na_area_de_trabalho(nome_atalho="Família no Altar"):
         print(f"Erro ao criar atalho: {e}")
 
 if __name__ == '__main__':
-    criar_atalho_na_area_de_trabalho()
+    if getattr(sys, 'frozen', False):
+        criar_atalho_na_area_de_trabalho()
     try:
         DataManager().executar_validacao_inicial()
+    except Exception:
+        pass
+    try:
+        DataManager().backup_auto_se_versao_mudou(APP_VERSION)
     except Exception:
         pass
     iniciar_painel()

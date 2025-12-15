@@ -6,14 +6,14 @@ import sys
 import logging
 import re
 from uuid import uuid4
+from zipfile import ZipFile, ZIP_DEFLATED
+from datetime import datetime
 
 # Configuração de logging (pode ser adaptado para exibir na interface se quiser)
 logging.basicConfig(level=logging.INFO)
 
-def get_resource_path(*paths):
-    """Retorna o caminho absoluto ao recurso, considerando empacotamento."""
-    base_path = getattr(sys, '_MEIPASS', os.path.abspath('.'))
-    return os.path.join(base_path, *paths)
+# Removido get_resource_path: recursos do bundle devem usar _bundle_resource_path;
+# dados persistentes do usuário devem usar _data_path.
 
 class DataManager:
     _instance = None
@@ -28,16 +28,11 @@ class DataManager:
     def __init__(self, base_path_override=None):
         if base_path_override:
             self.base_path_data = base_path_override
-            self.base_path_res = base_path_override
         else:
-            if getattr(sys, 'frozen', False):
-                self.base_path_data = os.path.dirname(sys.executable)
-                self.base_path_res = getattr(sys, '_MEIPASS', os.path.abspath('.'))
-            else:
-                self.base_path_data = os.path.abspath('.')
-                self.base_path_res = self.base_path_data
+            self.base_path_data = self._get_appdata_dir()
+        # Recursos estáticos (bundle)
+        self.base_path_res = getattr(sys, '_MEIPASS', os.path.abspath('.'))
 
-        self.base_path = self.base_path_data
         self.familias_file = os.path.join(self.base_path_data, "dados", "familias.json")
         self.sorteio_file = os.path.join(self.base_path_data, "dados", "sorteio.json")
 
@@ -47,7 +42,21 @@ class DataManager:
 
         self._initialize_persistent_store()
 
-    def _resource_path(self, *paths):
+    def _get_appdata_dir(self):
+        try:
+            appdata = os.environ.get('APPDATA')
+            if appdata and os.path.isdir(appdata):
+                base = os.path.join(appdata, 'FamiliaNoAltar')
+            else:
+                base = os.path.join(os.path.expanduser('~'), 'FamiliaNoAltar')
+            os.makedirs(base, exist_ok=True)
+            return base
+        except Exception:
+            base = os.path.join(os.path.abspath('.'), 'FamiliaNoAltar')
+            os.makedirs(base, exist_ok=True)
+            return base
+
+    def _data_path(self, *paths):
         return os.path.join(self.base_path_data, *paths)
 
     def _bundle_resource_path(self, *paths):
@@ -55,25 +64,39 @@ class DataManager:
 
     def _initialize_persistent_store(self):
         try:
-            # Copiar dados iniciais do bundle se não existir persistente
+            # Migração automática de dados antigos (ao lado do executável)
+            self._migrate_old_data_if_needed()
+
+            # Garantir estrutura de diretórios em AppData
+            os.makedirs(os.path.join(self.base_path_data, "dados"), exist_ok=True)
+            os.makedirs(os.path.join(self.base_path_data, "imagens", "familias"), exist_ok=True)
+            os.makedirs(os.path.join(self.base_path_data, "imagens", "thumbs"), exist_ok=True)
+            # Criar arquivos vazios na primeira execução
             if not os.path.exists(self.familias_file):
-                src = self._bundle_resource_path("dados", "familias.json")
-                if os.path.exists(src):
-                    shutil.copy2(src, self.familias_file)
-                else:
-                    self._atomic_write(self.familias_file, [])
-            # Copiar imagens iniciais se não existirem
-            src_imgs = self._bundle_resource_path("imagens", "familias")
-            dst_imgs = os.path.join(self.base_path_data, "imagens", "familias")
-            if os.path.exists(src_imgs):
-                for name in os.listdir(src_imgs):
-                    s = os.path.join(src_imgs, name)
-                    d = os.path.join(dst_imgs, name)
-                    try:
-                        if os.path.isfile(s) and not os.path.exists(d):
-                            shutil.copy2(s, d)
-                    except Exception:
-                        pass
+                self._atomic_write(self.familias_file, [])
+            if not os.path.exists(self.sorteio_file):
+                self._atomic_write(self.sorteio_file, {"ultimo_sorteado": None})
+        except Exception:
+            pass
+
+    def _migrate_old_data_if_needed(self):
+        try:
+            if not getattr(sys, 'frozen', False):
+                return
+            old_base = os.path.dirname(sys.executable)
+            old_dados = os.path.join(old_base, 'dados')
+            old_imgs = os.path.join(old_base, 'imagens')
+            # AppData vazio? (sem familias.json e sem imagens)
+            app_imgs = os.path.join(self.base_path_data, 'imagens', 'familias')
+            app_has_data = os.path.exists(self.familias_file) and os.path.getsize(self.familias_file) > 2
+            app_has_imgs = os.path.isdir(app_imgs) and len(os.listdir(app_imgs)) > 0
+            if (not app_has_data and not app_has_imgs) and (os.path.isdir(old_dados) or os.path.isdir(old_imgs)):
+                # Copia dados
+                if os.path.isdir(old_dados):
+                    shutil.copytree(old_dados, os.path.join(self.base_path_data, 'dados'), dirs_exist_ok=True)
+                # Copia imagens
+                if os.path.isdir(old_imgs):
+                    shutil.copytree(old_imgs, os.path.join(self.base_path_data, 'imagens'), dirs_exist_ok=True)
         except Exception:
             pass
 
@@ -82,7 +105,7 @@ class DataManager:
         if foto:
             if os.path.isabs(foto):
                 try:
-                    rel = os.path.relpath(foto, self.base_path)
+                    rel = os.path.relpath(foto, self.base_path_data)
                     f["foto"] = rel.replace("\\", "/")
                 except Exception:
                     pass
@@ -189,7 +212,76 @@ class DataManager:
     def _resolve_photo_abs(self, relative_or_abs):
         if os.path.isabs(relative_or_abs):
             return relative_or_abs
-        return self._resource_path(relative_or_abs)
+        return self._data_path(relative_or_abs)
+
+    def _version_file_path(self):
+        return os.path.join(self.base_path_data, "version.txt")
+
+    def _read_saved_version(self):
+        try:
+            vp = self._version_file_path()
+            if os.path.exists(vp):
+                with open(vp, "r", encoding="utf-8") as f:
+                    return f.read().strip()
+            return None
+        except Exception:
+            return None
+
+    def _write_saved_version(self, version):
+        try:
+            vp = self._version_file_path()
+            with open(vp, "w", encoding="utf-8") as f:
+                f.write(str(version or ""))
+            return True
+        except Exception:
+            return False
+
+    def _backups_dir(self):
+        p = os.path.join(self.base_path_data, "backups")
+        os.makedirs(p, exist_ok=True)
+        return p
+
+    def _make_backup_name(self, version):
+        ts = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        return f"{ts}_v{version}.zip"
+
+    def _unique_backup_path(self, name):
+        base = os.path.join(self._backups_dir(), name)
+        if not os.path.exists(base):
+            return base
+        i = 1
+        while True:
+            alt = os.path.join(self._backups_dir(), f"{os.path.splitext(name)[0]}_{i}.zip")
+            if not os.path.exists(alt):
+                return alt
+            i += 1
+
+    def _zip_dir(self, root_dir, zip_path):
+        try:
+            with ZipFile(zip_path, "w", ZIP_DEFLATED) as z:
+                for dirpath, dirnames, filenames in os.walk(root_dir):
+                    if os.path.basename(dirpath).lower() == "backups":
+                        continue
+                    for fn in filenames:
+                        absf = os.path.join(dirpath, fn)
+                        relf = os.path.relpath(absf, root_dir)
+                        z.write(absf, relf)
+            return True
+        except Exception:
+            return False
+
+    def criar_backup_manual(self, version):
+        name = self._make_backup_name(version)
+        target = self._unique_backup_path(name)
+        return self._zip_dir(self.base_path_data, target)
+
+    def backup_auto_se_versao_mudou(self, version):
+        saved = self._read_saved_version()
+        if str(saved) != str(version):
+            ok = self.criar_backup_manual(version)
+            self._write_saved_version(version)
+            return ok
+        return False
 
     def adicionar_familia(self, nome, caminho_foto):
         nome = (nome or "").strip()
@@ -204,7 +296,7 @@ class DataManager:
 
         extensao = os.path.splitext(caminho_foto)[-1]
         nome_arquivo = f"{uuid4().hex[:8]}{extensao}"
-        destino = self._resource_path("imagens", "familias", nome_arquivo)
+        destino = self._data_path("imagens", "familias", nome_arquivo)
         os.makedirs(os.path.dirname(destino), exist_ok=True)
         self._optimize_image(caminho_foto, destino)
         self._generate_thumb(destino)
@@ -235,7 +327,7 @@ class DataManager:
                 return False
             extensao = os.path.splitext(nova_foto_path)[-1]
             nome_arquivo = f"{uuid4().hex[:8]}{extensao}"
-            destino = self._resource_path("imagens", "familias", nome_arquivo)
+            destino = self._data_path("imagens", "familias", nome_arquivo)
             os.makedirs(os.path.dirname(destino), exist_ok=True)
             self._optimize_image(nova_foto_path, destino)
             self._generate_thumb(destino)
@@ -315,7 +407,7 @@ class DataManager:
             if img.isNull():
                 return
             img = img.scaled(240, 240, aspectRatioMode=1)
-            thumb_abs = os.path.join(self.base_path, "imagens", "thumbs", f"{os.path.splitext(os.path.basename(foto_abs))[0]}_thumb.jpg")
+            thumb_abs = os.path.join(self.base_path_data, "imagens", "thumbs", f"{os.path.splitext(os.path.basename(foto_abs))[0]}_thumb.jpg")
             img.save(thumb_abs, "JPG", 80)
         except Exception:
             pass

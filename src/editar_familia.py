@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt
 import os
 from src.data_manager import DataManager
 from PySide6.QtGui import QIcon
+from src.icon import get_icon_path
 from src.status_change_dialog import StatusChangeDialog
 import sys
 
@@ -31,12 +32,8 @@ class JanelaEditarFamilia(QWidget):
         self.setMinimumSize(560, 420)
         self.setWindowModality(Qt.ApplicationModal)
         try:
-            icon_path = os.path.join(os.path.dirname(sys.executable), "icone.ico") if getattr(sys, 'frozen', False) else os.path.join(os.path.abspath("."), "icone.ico")
-            if not os.path.exists(icon_path):
-                alt = os.path.join(os.path.abspath("."), "imagens", "icone.ico")
-                if os.path.exists(alt):
-                    icon_path = alt
-            if os.path.exists(icon_path):
+            icon_path = get_icon_path()
+            if icon_path:
                 self.setWindowIcon(QIcon(icon_path))
         except Exception:
             pass

@@ -19,6 +19,8 @@ from src.widgets import (
     SearchBar, FilterButton, TitleLabel, FullscreenImageViewer, PhotoViewer
 )
 from src.styles import AppStyles
+from src.version import APP_VERSION
+from src.icon import get_icon_path
 
 if getattr(sys, 'frozen', False):
     BASE_PATH = sys._MEIPASS
@@ -127,11 +129,13 @@ class PainelPrincipal(QWidget):
         self.setWindowTitle("Família no Altar - Painel")
         self.setMinimumSize(1200, 800)
         try:
-            icon_path = os.path.join(os.path.dirname(sys.executable), "icone.ico") if getattr(sys, 'frozen', False) else os.path.join(os.path.abspath("."), "icone.ico")
-            if not os.path.exists(icon_path):
-                alt = os.path.join(os.path.abspath("."), "imagens", "icone.ico")
-                if os.path.exists(alt):
-                    icon_path = alt
+            base = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.abspath(".")
+            candidates = [
+                os.path.join(base, "assets", "icone.ico"),
+                os.path.join(base, "imagens", "icone.ico"),
+                os.path.join(base, "icone.ico"),
+            ]
+            icon_path = next((p for p in candidates if os.path.exists(p)), None)
             if os.path.exists(icon_path):
                 self.setWindowIcon(QIcon(icon_path))
         except Exception:
@@ -182,7 +186,8 @@ class PainelPrincipal(QWidget):
         """)
         self.setWindowFlags(
             Qt.Window |
-            Qt.CustomizeWindowHint |
+            Qt.WindowTitleHint |
+            Qt.WindowSystemMenuHint |
             Qt.WindowMinMaxButtonsHint |
             Qt.WindowCloseButtonHint
         )
@@ -317,6 +322,9 @@ class PainelPrincipal(QWidget):
 
         sidebar_layout.addWidget(controls_container)
         sidebar_layout.addStretch()
+        btn_backup = QPushButton("Gerar backup")
+        btn_backup.clicked.connect(self._on_backup_manual)
+        sidebar_layout.addWidget(btn_backup)
         # Logo no canto inferior direito do menu lateral
         logo_label = QLabel()
         logo_label.setFixedSize(120, 120)
@@ -395,6 +403,16 @@ class PainelPrincipal(QWidget):
 
         main_layout.addWidget(content_widget)
 
+        footer = QFrame()
+        footer_layout = QHBoxLayout(footer)
+        footer_layout.setContentsMargins(30, 10, 30, 10)
+        footer_layout.setSpacing(0)
+        footer_label = QLabel(f"Família no Altar • versão {APP_VERSION}")
+        footer_label.setStyleSheet("color: #6B7280; font-size: 12px;")
+        footer_layout.addWidget(footer_label)
+        footer_layout.addStretch(1)
+        main_layout.addWidget(footer)
+
         self.notification.setParent(self)
         self.notification.move(30, self.height() - 80)
 
@@ -452,6 +470,24 @@ class PainelPrincipal(QWidget):
             self.notification.show_message("Erro ao resetar sorteio", "error")
         
         self.hideLoading()
+
+    def _on_backup_manual(self):
+        self.showLoading()
+        QTimer.singleShot(100, self._on_backup_manual_impl)
+
+    def _on_backup_manual_impl(self):
+        ok = False
+        try:
+            ok = self.data_manager.criar_backup_manual(APP_VERSION)
+        except Exception:
+            ok = False
+        self.hideLoading()
+        if ok:
+            msg = "Backup criado com sucesso em %APPDATA%/FamiliaNoAltar/backups"
+            dlg = JanelaConfirmacao("", parent=self, info_text=msg)
+            dlg.exec()
+        else:
+            self.notification.show_message("Falha ao criar backup", "error")
 
     def atualizar_filtro(self, filtro):
         self.filtro_atual = filtro
@@ -715,12 +751,8 @@ class PainelPrincipal(QWidget):
 def iniciar_painel():
     app = QApplication(sys.argv)
     try:
-        icon_path = os.path.join(os.path.dirname(sys.executable), "icone.ico") if getattr(sys, 'frozen', False) else os.path.join(os.path.abspath("."), "icone.ico")
-        if not os.path.exists(icon_path):
-            alt = os.path.join(os.path.abspath("."), "imagens", "icone.ico")
-            if os.path.exists(alt):
-                icon_path = alt
-        if os.path.exists(icon_path):
+        icon_path = get_icon_path()
+        if icon_path:
             app.setWindowIcon(QIcon(icon_path))
     except Exception:
         pass
