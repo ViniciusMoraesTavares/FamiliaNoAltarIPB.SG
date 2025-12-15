@@ -1,5 +1,7 @@
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QPushButton
+from PySide6.QtGui import QIcon
+import os, sys
 
 class DeleteConfirmDialog(QDialog):
     confirmado = Signal()
@@ -15,6 +17,16 @@ class DeleteConfirmDialog(QDialog):
             Qt.WindowSystemMenuHint |
             Qt.WindowTitleHint
         )
+        try:
+            icon_path = os.path.join(os.path.dirname(sys.executable), "icone.ico") if getattr(sys, 'frozen', False) else os.path.join(os.path.abspath("."), "icone.ico")
+            if not os.path.exists(icon_path):
+                alt = os.path.join(os.path.abspath("."), "imagens", "icone.ico")
+                if os.path.exists(alt):
+                    icon_path = alt
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+        except Exception:
+            pass
 
         self.setStyleSheet("""
             QDialog {

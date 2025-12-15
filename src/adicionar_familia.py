@@ -3,6 +3,8 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButt
 from PySide6.QtGui import QFont, QPixmap
 import os
 from src.data_manager import DataManager
+from PySide6.QtGui import QIcon
+import sys
 
 class JanelaAdicionarFamilia(QDialog):
     familia_adicionada = Signal()  
@@ -10,6 +12,16 @@ class JanelaAdicionarFamilia(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Adicionar Família")
+        try:
+            icon_path = os.path.join(os.path.dirname(sys.executable), "icone.ico") if getattr(sys, 'frozen', False) else os.path.join(os.path.abspath("."), "icone.ico")
+            if not os.path.exists(icon_path):
+                alt = os.path.join(os.path.abspath("."), "imagens", "icone.ico")
+                if os.path.exists(alt):
+                    icon_path = alt
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+        except Exception:
+            pass
         self.setStyleSheet("""
             QDialog { background-color: #FFFFFF; border-radius: 10px; }
             QLabel#title { font-size: 20px; color: #1F2937; font-weight: 700; }

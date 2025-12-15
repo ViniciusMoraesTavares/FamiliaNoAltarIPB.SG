@@ -9,7 +9,7 @@ a = Analysis(
     ['main.py'],
     pathex=['src'],
     binaries=binaries_pyqt,
-    datas=[('dados', 'dados'), ('imagens', 'imagens')] + datas_pyqt,
+    datas=[('dados', 'dados'), ('imagens', 'imagens'), ('C:\\Users\\Myelin\\OneDrive\\Documentos\\icone.ico', '.')] + datas_pyqt,
     hiddenimports=hiddenimports_pyqt,
     hookspath=[],
     hooksconfig={},

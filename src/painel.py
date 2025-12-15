@@ -126,6 +126,16 @@ class PainelPrincipal(QWidget):
         super().__init__()
         self.setWindowTitle("Família no Altar - Painel")
         self.setMinimumSize(1200, 800)
+        try:
+            icon_path = os.path.join(os.path.dirname(sys.executable), "icone.ico") if getattr(sys, 'frozen', False) else os.path.join(os.path.abspath("."), "icone.ico")
+            if not os.path.exists(icon_path):
+                alt = os.path.join(os.path.abspath("."), "imagens", "icone.ico")
+                if os.path.exists(alt):
+                    icon_path = alt
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+        except Exception:
+            pass
         self.setStyleSheet("""
             QWidget {
                 background-color: white;
@@ -704,5 +714,15 @@ class PainelPrincipal(QWidget):
 
 def iniciar_painel():
     app = QApplication(sys.argv)
+    try:
+        icon_path = os.path.join(os.path.dirname(sys.executable), "icone.ico") if getattr(sys, 'frozen', False) else os.path.join(os.path.abspath("."), "icone.ico")
+        if not os.path.exists(icon_path):
+            alt = os.path.join(os.path.abspath("."), "imagens", "icone.ico")
+            if os.path.exists(alt):
+                icon_path = alt
+        if os.path.exists(icon_path):
+            app.setWindowIcon(QIcon(icon_path))
+    except Exception:
+        pass
     painel = PainelPrincipal()
     sys.exit(app.exec())
