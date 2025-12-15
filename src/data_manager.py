@@ -136,18 +136,23 @@ class DataManager:
 
         try:
             if not os.path.exists(self.sorteio_file):
-                return None
+                return self._recalcular_ultimo_sorteado()
 
             with open(self.sorteio_file, "r", encoding="utf-8") as f:
                 dados = json.load(f)
-                self._ultimo_sorteio_cache = dados.get("ultimo_sorteado")
-                return self._ultimo_sorteio_cache
+                num = dados.get("ultimo_sorteado")
+                familias = self.carregar_familias()
+                valido = any(str(f.get("numero")) == str(num) and f.get("sorteado") for f in familias)
+                if not valido:
+                    return self._recalcular_ultimo_sorteado()
+                self._ultimo_sorteio_cache = num
+                return num
         except json.JSONDecodeError:
             logging.error(f"Erro ao decodificar {self.sorteio_file}")
-            return None
+            return self._recalcular_ultimo_sorteado()
         except Exception as e:
             logging.error(f"Erro ao carregar último sorteio: {str(e)}")
-            return None
+            return self._recalcular_ultimo_sorteado()
 
     def salvar_sorteio(self, numero):
         try:
@@ -414,11 +419,9 @@ class DataManager:
             except Exception:
                 num = None
             familias = self.carregar_familias()
-            ok = num is not None and any(int(f.get("numero")) == num for f in familias)
+            ok = num is not None and any(int(f.get("numero")) == num and f.get("sorteado") for f in familias)
             if not ok:
-                os.remove(self.sorteio_file)
-                self._ultimo_sorteio_cache = None
-                logging.warning("sorteio.json inválido removido")
+                self._recalcular_ultimo_sorteado()
             return True
         except Exception as e:
             logging.error(f"Erro ao validar sorteio: {str(e)}")
@@ -445,7 +448,43 @@ class DataManager:
             ok = self.salvar_familias(familias)
             if ok:
                 logging.info(f"Status da família {familia.get('nome')} ({numero}) alterado para {familia['sorteado']}")
+                if not familia["sorteado"]:
+                    # Se a família que estava como última for revertida, recalcula a última válida
+                    self._recalcular_ultimo_sorteado()
             return ok
         except Exception as e:
             logging.error(f"Erro ao alterar status da família {numero}: {str(e)}")
             return False
+
+    def _recalcular_ultimo_sorteado(self):
+        """Determina e persiste a última família sorteada válida baseada na data_sorteio."""
+        try:
+            familias = self.carregar_familias(force_reload=True)
+            # Filtra apenas sorteadas; usa data_sorteio como prioridade; em fallback usa número maior
+            def key_fn(f):
+                ds = f.get("data_sorteio")
+                if ds:
+                    try:
+                        # dd/mm/yyyy -> tuple (yyyy, mm, dd) para ordenar corretamente
+                        d, m, y = ds.split("/")
+                        return (int(y), int(m), int(d), int(f.get("numero", 0)))
+                    except Exception:
+                        pass
+                return (0, 0, 0, int(f.get("numero", 0)))
+            sorteadas = [f for f in familias if f.get("sorteado")]
+            if not sorteadas:
+                # limpa arquivo e cache
+                if os.path.exists(self.sorteio_file):
+                    try:
+                        os.remove(self.sorteio_file)
+                    except Exception:
+                        pass
+                self._ultimo_sorteio_cache = None
+                return None
+            ultima = sorted(sorteadas, key=key_fn, reverse=True)[0]
+            num = ultima.get("numero")
+            self.salvar_sorteio(num)
+            return num
+        except Exception as e:
+            logging.error(f"Erro ao recalcular último sorteado: {str(e)}")
+            return None
