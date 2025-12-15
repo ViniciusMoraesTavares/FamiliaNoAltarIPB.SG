@@ -65,7 +65,7 @@ class JanelaSorteio(QWidget):
 
     def init_ui(self):
         self.setFixedSize(1024, 768)
-        self.setStyleSheet("QWidget { background-color: #111827; }")
+        self.setStyleSheet("QWidget { background-color: #ffffff; }")
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(24, 24, 24, 24)
         self.layout.setSpacing(16)
