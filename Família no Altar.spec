@@ -1,18 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_all
 
-hidden = []
-hidden += collect_submodules('PySide6')
-hidden += ['win32com', 'win32com.client']
+datas_pyqt, binaries_pyqt, hiddenimports_pyqt = collect_all('PySide6')
 
 a = Analysis(
     ['main.py'],
     pathex=['src'],
-    binaries=[],
-    datas=[('dados', 'dados'), ('imagens', 'imagens')],
-    hiddenimports=hidden,
+    binaries=binaries_pyqt,
+    datas=[('dados', 'dados'), ('imagens', 'imagens')] + datas_pyqt,
+    hiddenimports=hiddenimports_pyqt,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

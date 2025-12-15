@@ -26,16 +26,56 @@ class DataManager:
         return cls._instance
 
     def __init__(self, base_path_override=None):
-        self.base_path = base_path_override or getattr(sys, '_MEIPASS', os.path.abspath('.'))
-        self.familias_file = os.path.join(self.base_path, "dados", "familias.json")
-        self.sorteio_file = os.path.join(self.base_path, "dados", "sorteio.json")
+        if base_path_override:
+            self.base_path_data = base_path_override
+            self.base_path_res = base_path_override
+        else:
+            if getattr(sys, 'frozen', False):
+                self.base_path_data = os.path.dirname(sys.executable)
+                self.base_path_res = getattr(sys, '_MEIPASS', os.path.abspath('.'))
+            else:
+                self.base_path_data = os.path.abspath('.')
+                self.base_path_res = self.base_path_data
 
-        os.makedirs(os.path.join(self.base_path, "dados"), exist_ok=True)
-        os.makedirs(os.path.join(self.base_path, "imagens", "familias"), exist_ok=True)
-        os.makedirs(os.path.join(self.base_path, "imagens", "thumbs"), exist_ok=True)
+        self.base_path = self.base_path_data
+        self.familias_file = os.path.join(self.base_path_data, "dados", "familias.json")
+        self.sorteio_file = os.path.join(self.base_path_data, "dados", "sorteio.json")
+
+        os.makedirs(os.path.join(self.base_path_data, "dados"), exist_ok=True)
+        os.makedirs(os.path.join(self.base_path_data, "imagens", "familias"), exist_ok=True)
+        os.makedirs(os.path.join(self.base_path_data, "imagens", "thumbs"), exist_ok=True)
+
+        self._initialize_persistent_store()
 
     def _resource_path(self, *paths):
-        return os.path.join(self.base_path, *paths)
+        return os.path.join(self.base_path_data, *paths)
+
+    def _bundle_resource_path(self, *paths):
+        return os.path.join(self.base_path_res, *paths)
+
+    def _initialize_persistent_store(self):
+        try:
+            # Copiar dados iniciais do bundle se não existir persistente
+            if not os.path.exists(self.familias_file):
+                src = self._bundle_resource_path("dados", "familias.json")
+                if os.path.exists(src):
+                    shutil.copy2(src, self.familias_file)
+                else:
+                    self._atomic_write(self.familias_file, [])
+            # Copiar imagens iniciais se não existirem
+            src_imgs = self._bundle_resource_path("imagens", "familias")
+            dst_imgs = os.path.join(self.base_path_data, "imagens", "familias")
+            if os.path.exists(src_imgs):
+                for name in os.listdir(src_imgs):
+                    s = os.path.join(src_imgs, name)
+                    d = os.path.join(dst_imgs, name)
+                    try:
+                        if os.path.isfile(s) and not os.path.exists(d):
+                            shutil.copy2(s, d)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
     def _normalize_familia(self, f):
         foto = f.get("foto")
@@ -205,6 +245,13 @@ class DataManager:
                         os.remove(old_abs)
                     except Exception:
                         pass
+                # remover thumb antiga
+                try:
+                    old_thumb = os.path.join(self.base_path_data, self._thumb_path(old_rel))
+                    if os.path.exists(old_thumb):
+                        os.remove(old_thumb)
+                except Exception:
+                    pass
         return self.salvar_familias(familias)
 
     def excluir_familia(self, numero):
@@ -222,6 +269,12 @@ class DataManager:
                     os.remove(foto_abs)
                 except Exception:
                     pass
+            try:
+                old_thumb = os.path.join(self.base_path_data, self._thumb_path(foto_rel))
+                if os.path.exists(old_thumb):
+                    os.remove(old_thumb)
+            except Exception:
+                pass
         return ok
 
     def _optimize_image(self, src_path, dst_path):
@@ -386,6 +439,7 @@ class DataManager:
             if familia["sorteado"]:
                 from datetime import datetime
                 familia["data_sorteio"] = datetime.now().strftime("%d/%m/%Y")
+                self.salvar_sorteio(numero)
             else:
                 familia.pop("data_sorteio", None)
             ok = self.salvar_familias(familias)

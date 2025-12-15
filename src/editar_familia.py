@@ -91,7 +91,9 @@ class JanelaEditarFamilia(QWidget):
             self.foto_label.setPixmap(pixmap)
 
     def _foto_absoluta(self, rel_ou_abs):
-        return rel_ou_abs if os.path.isabs(rel_ou_abs) else os.path.join(BASE_PATH, rel_ou_abs)
+        if os.path.isabs(rel_ou_abs):
+            return rel_ou_abs
+        return self.data_manager._resolve_photo_abs(rel_ou_abs)
 
     def salvar_edicao(self):
         novo_nome = self.nome_input.text().strip()

@@ -210,11 +210,8 @@ class JanelaSorteio(QWidget):
             self.loading_overlay.resize(self.size())
 
     def obter_caminho_arquivo(self, caminho):
-        if getattr(sys, 'frozen', False):
-            base_path = sys._MEIPASS
-        else:
-            base_path = os.path.abspath('.') 
-        return os.path.join(base_path, caminho)
+        dm = DataManager()
+        return dm._resolve_photo_abs(caminho) if caminho else ""
 
     def _position_current_name(self):
         pass

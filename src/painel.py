@@ -473,10 +473,9 @@ class PainelPrincipal(QWidget):
     def exibir_imagem_fullscreen(self, imagem_url):
         if not imagem_url:
             return
-        if not os.path.isabs(imagem_url):
-            imagem_url = os.path.join(BASE_PATH, imagem_url)
-        if os.path.exists(imagem_url):
-            pix = QPixmap(imagem_url)
+        abs_path = self.data_manager._resolve_photo_abs(imagem_url) if imagem_url else ""
+        if abs_path and os.path.exists(abs_path):
+            pix = QPixmap(abs_path)
             viewer = PhotoViewer(pix, self)
             viewer.exec_()
 
@@ -516,10 +515,9 @@ class PainelPrincipal(QWidget):
         caminho = familia.get("foto", "")
         if not caminho:
             return
-        if not os.path.isabs(caminho):
-            caminho = os.path.join(BASE_PATH, caminho)
-        if os.path.exists(caminho):
-            pix = QPixmap(caminho)
+        abs_path = self.data_manager._resolve_photo_abs(caminho)
+        if abs_path and os.path.exists(abs_path):
+            pix = QPixmap(abs_path)
             viewer = PhotoViewer(pix, self)
             viewer.exec_()
 
@@ -626,6 +624,14 @@ class PainelPrincipal(QWidget):
         def callback_atualizacao():
             self.data_manager.carregar_familias(force_reload=True)
             self.atualizar_galeria()
+            try:
+                ultimo = self.data_manager.carregar_ultimo_sorteio()
+                if self.janela_sorteio and self.janela_sorteio.isVisible():
+                    self.janela_sorteio.atualizar_ultimo_sorteado()
+                    if ultimo:
+                        self.janela_sorteio.mostrar_familia_por_numero(str(ultimo))
+            except Exception:
+                pass
             
         from src.editar_familia import JanelaEditarFamilia
         self.janela_edicao = JanelaEditarFamilia(familia, callback_atualizacao)
