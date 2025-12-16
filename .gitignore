@@ -16,3 +16,4 @@ __pycache__/
 *.swp
 .pytest_cache/
 *.sqlite3
+imagens/familias/
