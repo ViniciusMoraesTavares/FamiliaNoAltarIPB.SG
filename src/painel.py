@@ -14,13 +14,14 @@ from src.janela_confirmacao    import JanelaConfirmacao
 from src.delete_confirm_dialog import DeleteConfirmDialog
 from src.filtro_familias       import nao_sorteadas, sorteadas, buscar
 from src.data_manager import DataManager
+from src.numeros_impressao_dialog import NumerosImpressaoDialog
 from src.widgets import (
     NotificationWidget, AutoSaveBanner, LoadingOverlay,
     SearchBar, FilterButton, TitleLabel, FullscreenImageViewer, PhotoViewer
 )
 from src.styles import AppStyles
 from src.version import APP_VERSION
-from src.icon import apply_windows_app_user_model_id, get_app_icon, get_icon_path
+from src.icon import apply_windows_app_user_model_id, get_app_icon
 
 if getattr(sys, 'frozen', False):
     BASE_PATH = sys._MEIPASS
@@ -322,6 +323,9 @@ class PainelPrincipal(QWidget):
 
         sidebar_layout.addWidget(controls_container)
         sidebar_layout.addStretch()
+        btn_imprimir_numeros = QPushButton("Imprimir números")
+        btn_imprimir_numeros.clicked.connect(self._abrir_impressao_numeros)
+        sidebar_layout.addWidget(btn_imprimir_numeros)
         btn_backup = QPushButton("Gerar backup")
         btn_backup.clicked.connect(self._on_backup_manual)
         sidebar_layout.addWidget(btn_backup)
@@ -551,6 +555,30 @@ class PainelPrincipal(QWidget):
             dlg.exec()
         else:
             self.notification.show_message("Falha ao criar backup", "error")
+
+    def _abrir_impressao_numeros(self):
+        familias = nao_sorteadas(self.data_manager.carregar_familias())
+        try:
+            familias = sorted(familias, key=lambda f: int(f.get("numero", 0)))
+        except Exception:
+            familias = sorted(familias, key=lambda f: str(f.get("numero", "")))
+
+        numeros = []
+        for familia in familias:
+            try:
+                numeros.append(int(familia.get("numero")))
+            except Exception:
+                continue
+
+        if not numeros:
+            self.notification.show_message(
+                "Não há famílias aguardando sorteio para imprimir.",
+                "info",
+            )
+            return
+
+        dialog = NumerosImpressaoDialog(numeros, self)
+        dialog.exec()
 
     def atualizar_filtro(self, filtro):
         self.filtro_atual = filtro
