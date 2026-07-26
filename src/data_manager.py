@@ -20,7 +20,7 @@ class DataManager:
     _familias_cache = None
     _ultimo_sorteio_cache = None
 
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super(DataManager, cls).__new__(cls)
         return cls._instance
@@ -351,28 +351,77 @@ class DataManager:
                     pass
         return self.salvar_familias(familias)
 
+    def _ordenar_familias_por_numero(self, familias):
+        try:
+            return sorted(familias, key=lambda f: int(f.get("numero", 0)))
+        except Exception:
+            return sorted(familias, key=lambda f: str(f.get("numero", "")))
+
+    def _renumerar_familias_sem_lacunas(self, familias):
+        familias_ordenadas = self._ordenar_familias_por_numero(list(familias))
+        numeros = []
+        for familia in familias_ordenadas:
+            try:
+                numeros.append(int(familia.get("numero")))
+            except Exception as exc:
+                raise ValueError("Há família com número inválido na base.") from exc
+
+        if len(numeros) != len(set(numeros)):
+            raise ValueError("Há números duplicados na base de famílias.")
+
+        for indice, familia in enumerate(familias_ordenadas, start=1):
+            familia["numero"] = indice
+
+        numeros_finais = [int(f.get("numero")) for f in familias_ordenadas]
+        esperado = list(range(1, len(familias_ordenadas) + 1))
+        if numeros_finais != esperado:
+            raise ValueError("Não foi possível manter a sequência contínua das famílias.")
+
+        return familias_ordenadas
+
     def excluir_familia(self, numero):
-        familias = self.carregar_familias()
-        alvo = next((f for f in familias if str(f.get("numero")) == str(numero)), None)
-        if not alvo:
-            return False
-        foto_rel = alvo.get("foto")
-        familias = [f for f in familias if f is not alvo]
-        ok = self.salvar_familias(familias)
-        if ok and foto_rel:
-            foto_abs = self._resolve_photo_abs(foto_rel)
-            if os.path.exists(foto_abs):
+        try:
+            familias = self._ordenar_familias_por_numero(self.carregar_familias())
+            try:
+                numero_excluido = int(numero)
+            except Exception:
+                return False
+
+            alvo_index = next(
+                (i for i, familia in enumerate(familias) if int(familia.get("numero", 0)) == numero_excluido),
+                None,
+            )
+            if alvo_index is None:
+                return False
+
+            alvo = familias[alvo_index]
+            foto_rel = alvo.get("foto")
+            familias.pop(alvo_index)
+            familias = self._renumerar_familias_sem_lacunas(familias)
+
+            ok = self.salvar_familias(familias)
+            if not ok:
+                return False
+
+            self._recalcular_ultimo_sorteado()
+
+            if foto_rel:
+                foto_abs = self._resolve_photo_abs(foto_rel)
+                if os.path.exists(foto_abs):
+                    try:
+                        os.remove(foto_abs)
+                    except Exception:
+                        pass
                 try:
-                    os.remove(foto_abs)
+                    old_thumb = os.path.join(self.base_path_data, self._thumb_path(foto_rel))
+                    if os.path.exists(old_thumb):
+                        os.remove(old_thumb)
                 except Exception:
                     pass
-            try:
-                old_thumb = os.path.join(self.base_path_data, self._thumb_path(foto_rel))
-                if os.path.exists(old_thumb):
-                    os.remove(old_thumb)
-            except Exception:
-                pass
-        return ok
+            return True
+        except Exception as e:
+            logging.error(f"Erro ao excluir família {numero}: {str(e)}")
+            return False
 
     def _optimize_image(self, src_path, dst_path):
         try:
@@ -455,6 +504,8 @@ class DataManager:
             numero = f.get("numero")
             sorteado = f.get("sorteado", False)
             foto = f.get("foto", "")
+            if foto:
+                foto = self._normalize_familia({"foto": foto}).get("foto", "")
             data_s = f.get("data_sorteio", None)
             try:
                 numero = int(numero)

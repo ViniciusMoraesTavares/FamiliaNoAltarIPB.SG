@@ -560,6 +560,21 @@ class PainelPrincipal(QWidget):
         self.termo_pesquisa = texto
         self.atualizar_galeria()
 
+    def _formatar_total_familias(self, total, filtro=None):
+        filtro = filtro or self.filtro_atual
+        if filtro == "sorteadas":
+            return f"{total} famílias sorteadas"
+        if filtro == "nao_sorteadas":
+            return f"{total} famílias aguardando sorteio"
+        return f"{total} famílias"
+
+    def _total_por_filtro(self, familias):
+        if self.filtro_atual == "sorteadas":
+            return len(sorteadas(familias))
+        if self.filtro_atual == "nao_sorteadas":
+            return len(nao_sorteadas(familias))
+        return len(familias)
+
     def atualizar_galeria(self):
         self._load_generation += 1
         generation = self._load_generation
@@ -612,11 +627,12 @@ class PainelPrincipal(QWidget):
         self._batch_total = len(familias)
         self.verificar_reset_necessario()
         total_base = len(familias_base)
+        total_filtro = self._total_por_filtro(familias_base)
 
         if not familias:
             texto_vazio = "Nenhuma família encontrada para o filtro atual."
             self._build_empty_gallery(texto_vazio)
-            self.label_total.setText(f"Exibindo 0 de {total_base} famílias")
+            self.label_total.setText(self._formatar_total_familias(total_filtro))
             self._set_progress_state(
                 visible=bool(total_base),
                 title="Carregamento concluído",
@@ -627,11 +643,11 @@ class PainelPrincipal(QWidget):
                 QTimer.singleShot(1500, lambda: self._hide_progress_if_idle(generation))
             return
 
-        self.label_total.setText(f"Exibindo 0 de {total_base} famílias")
+        self.label_total.setText(self._formatar_total_familias(total_filtro))
         self._build_empty_gallery("Carregando primeiros registros...")
-        self._processar_proximo_lote(generation, total_base)
+        self._processar_proximo_lote(generation)
 
-    def _processar_proximo_lote(self, generation, total_base):
+    def _processar_proximo_lote(self, generation):
         if generation != self._load_generation:
             return
 
@@ -655,7 +671,6 @@ class PainelPrincipal(QWidget):
         self._batch_index = fim
         percentual = 100 if self._batch_total == 0 else int((self._batch_index / self._batch_total) * 100)
         restante = max(self._batch_total - self._batch_index, 0)
-        self.label_total.setText(f"Exibindo {self._batch_index} de {total_base} famílias")
         self._set_progress_state(
             visible=True,
             title="Carregando famílias",
@@ -664,7 +679,7 @@ class PainelPrincipal(QWidget):
         )
 
         if self._batch_index < self._batch_total:
-            QTimer.singleShot(12, lambda: self._processar_proximo_lote(generation, total_base))
+            QTimer.singleShot(12, lambda: self._processar_proximo_lote(generation))
             return
 
         mensagem_final = f"{self._batch_total} famílias carregadas com sucesso."
