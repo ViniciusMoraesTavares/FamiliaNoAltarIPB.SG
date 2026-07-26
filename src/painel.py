@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QGridLayout, QHBoxLayout,
     QPushButton, QLabel, QScrollArea, QGroupBox, QFrame,
     QSpacerItem, QSizePolicy, QLineEdit, QGraphicsDropShadowEffect,
-    QToolButton, QButtonGroup
+    QToolButton, QButtonGroup, QProgressBar
 )
 from PySide6.QtGui import QPixmap, QFont, QColor, QPalette, QIcon, QMovie, QIntValidator
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QSize, Signal, Property
@@ -20,7 +20,7 @@ from src.widgets import (
 )
 from src.styles import AppStyles
 from src.version import APP_VERSION
-from src.icon import get_icon_path
+from src.icon import apply_windows_app_user_model_id, get_app_icon, get_icon_path
 
 if getattr(sys, 'frozen', False):
     BASE_PATH = sys._MEIPASS
@@ -129,15 +129,9 @@ class PainelPrincipal(QWidget):
         self.setWindowTitle("Família no Altar - Painel")
         self.setMinimumSize(1200, 800)
         try:
-            base = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.abspath(".")
-            candidates = [
-                os.path.join(base, "assets", "icone.ico"),
-                os.path.join(base, "imagens", "icone.ico"),
-                os.path.join(base, "icone.ico"),
-            ]
-            icon_path = next((p for p in candidates if os.path.exists(p)), None)
-            if os.path.exists(icon_path):
-                self.setWindowIcon(QIcon(icon_path))
+            icon = get_app_icon()
+            if not icon.isNull():
+                self.setWindowIcon(icon)
         except Exception:
             pass
         self.setStyleSheet("""
@@ -204,10 +198,16 @@ class PainelPrincipal(QWidget):
         self.notification = NotificationWidget(self)
         self.auto_save_banner = AutoSaveBanner(self)
         self.loading_overlay = LoadingOverlay(self)
-        self._batch_size = 40
+        self._batch_size = 20
         self._batch_index = 0
         self._cards = []
         self._familias_filtradas = []
+        self._batch_total = 0
+        self._batch_errors = 0
+        self._load_generation = 0
+        self._gallery_container = None
+        self._gallery_layout = None
+        self._gallery_placeholder = None
 
         self.init_ui()
         self.showMaximized()
@@ -377,11 +377,73 @@ class PainelPrincipal(QWidget):
         search_layout.addWidget(self.search_input)
 
         self.label_total = QLabel()
-        self.label_total.setText(f"Total: {len(self.data_manager.carregar_familias())} famílias")
+        self.label_total.setText("Preparando famílias...")
         self.label_total.setStyleSheet("font-size: 14px; color: #616161; font-weight: bold;")
         search_layout.addWidget(self.label_total)
 
         right_layout.addWidget(search_container)
+
+        self.progress_card = QFrame()
+        self.progress_card.setStyleSheet("""
+            QFrame {
+                background-color: #F8FAF8;
+                border: 1px solid #DDE6D9;
+                border-radius: 16px;
+            }
+            QLabel#progressTitle {
+                color: #1F2937;
+                font-size: 15px;
+                font-weight: 700;
+            }
+            QLabel#progressSubtitle {
+                color: #6B7280;
+                font-size: 12px;
+            }
+            QLabel#progressPercent {
+                color: #2c4b23;
+                font-size: 22px;
+                font-weight: 800;
+            }
+            QProgressBar {
+                min-height: 12px;
+                max-height: 12px;
+                border: none;
+                border-radius: 6px;
+                background-color: #E5E7EB;
+                text-align: center;
+            }
+            QProgressBar::chunk {
+                border-radius: 6px;
+                background-color: #2c4b23;
+            }
+        """)
+        progress_layout = QVBoxLayout(self.progress_card)
+        progress_layout.setContentsMargins(18, 16, 18, 16)
+        progress_layout.setSpacing(10)
+        progress_header = QHBoxLayout()
+        progress_header.setContentsMargins(0, 0, 0, 0)
+        progress_header.setSpacing(12)
+        progress_texts = QVBoxLayout()
+        progress_texts.setContentsMargins(0, 0, 0, 0)
+        progress_texts.setSpacing(2)
+        self.progress_title = QLabel("Carregando famílias")
+        self.progress_title.setObjectName("progressTitle")
+        self.progress_subtitle = QLabel("A interface já está pronta. Os registros serão exibidos gradualmente.")
+        self.progress_subtitle.setObjectName("progressSubtitle")
+        self.progress_subtitle.setWordWrap(True)
+        progress_texts.addWidget(self.progress_title)
+        progress_texts.addWidget(self.progress_subtitle)
+        progress_header.addLayout(progress_texts, 1)
+        self.progress_percent = QLabel("0%")
+        self.progress_percent.setObjectName("progressPercent")
+        progress_header.addWidget(self.progress_percent, 0, Qt.AlignRight | Qt.AlignVCenter)
+        progress_layout.addLayout(progress_header)
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(False)
+        progress_layout.addWidget(self.progress_bar)
+        right_layout.addWidget(self.progress_card)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -395,6 +457,7 @@ class PainelPrincipal(QWidget):
             }
         """)
         right_layout.addWidget(self.scroll_area)
+        self._build_empty_gallery("Aguardando dados...")
 
         page_layout.addWidget(sidebar)
         page_layout.addWidget(right_content)
@@ -417,8 +480,8 @@ class PainelPrincipal(QWidget):
         self.notification.move(30, self.height() - 80)
 
         self.loading_overlay.setParent(self)
-        
-        self.atualizar_galeria()
+
+        QTimer.singleShot(0, self.atualizar_galeria)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -498,12 +561,42 @@ class PainelPrincipal(QWidget):
         self.atualizar_galeria()
 
     def atualizar_galeria(self):
-        self.showLoading()
-        QTimer.singleShot(100, self._atualizar_galeria_impl)
+        self._load_generation += 1
+        generation = self._load_generation
+        self._batch_index = 0
+        self._batch_errors = 0
+        self._cards = []
+        self._familias_filtradas = []
+        self._batch_total = 0
+        self._set_progress_state(
+            visible=True,
+            title="Carregando famílias",
+            subtitle="A interface já está pronta. Os registros serão exibidos gradualmente.",
+            percent=0,
+        )
+        self.label_total.setText("Carregando famílias...")
+        self._build_empty_gallery("Preparando registros...")
+        QTimer.singleShot(0, lambda: self._preparar_carregamento_galeria(generation))
 
-    def _atualizar_galeria_impl(self):
-        familias = self.data_manager.carregar_familias()
+    def _preparar_carregamento_galeria(self, generation):
+        if generation != self._load_generation:
+            return
 
+        try:
+            familias_base = self.data_manager.carregar_familias()
+        except Exception as exc:
+            self._set_progress_state(
+                visible=True,
+                title="Falha ao carregar famílias",
+                subtitle="A interface continua disponível. Tente novamente em alguns instantes.",
+                percent=0,
+            )
+            self.label_total.setText("Falha ao carregar famílias")
+            self._build_empty_gallery("Não foi possível carregar os registros.")
+            self.notification.show_message(f"Falha ao carregar famílias: {exc}", "error")
+            return
+
+        familias = list(familias_base)
         if self.filtro_atual == "nao_sorteadas":
             familias = nao_sorteadas(familias)
         elif self.filtro_atual == "sorteadas":
@@ -515,21 +608,116 @@ class PainelPrincipal(QWidget):
         except Exception:
             familias = sorted(familias, key=lambda f: str(f.get("numero", "")))
 
-        container = QWidget()
-        container.setStyleSheet("background-color: transparent;")
-        list_layout = QVBoxLayout(container)
-        list_layout.setContentsMargins(0, 0, 0, 0)
-        list_layout.setSpacing(8)
-
-        for f in familias:
-            item = self._criar_item_lista(f)
-            list_layout.addWidget(item)
-        list_layout.addStretch()
-
-        self.scroll_area.setWidget(container)
+        self._familias_filtradas = familias
+        self._batch_total = len(familias)
         self.verificar_reset_necessario()
-        self.label_total.setText(f"Total de Famílias: {len(self.data_manager.carregar_familias())}")
-        self.hideLoading()
+        total_base = len(familias_base)
+
+        if not familias:
+            texto_vazio = "Nenhuma família encontrada para o filtro atual."
+            self._build_empty_gallery(texto_vazio)
+            self.label_total.setText(f"Exibindo 0 de {total_base} famílias")
+            self._set_progress_state(
+                visible=bool(total_base),
+                title="Carregamento concluído",
+                subtitle="Nenhum registro corresponde ao filtro informado." if total_base else "Cadastre a primeira família para começar.",
+                percent=100,
+            )
+            if total_base:
+                QTimer.singleShot(1500, lambda: self._hide_progress_if_idle(generation))
+            return
+
+        self.label_total.setText(f"Exibindo 0 de {total_base} famílias")
+        self._build_empty_gallery("Carregando primeiros registros...")
+        self._processar_proximo_lote(generation, total_base)
+
+    def _processar_proximo_lote(self, generation, total_base):
+        if generation != self._load_generation:
+            return
+
+        inicio = self._batch_index
+        fim = min(inicio + self._batch_size, self._batch_total)
+        lote = self._familias_filtradas[inicio:fim]
+
+        for familia in lote:
+            try:
+                if self._gallery_placeholder is not None:
+                    self._gallery_layout.removeWidget(self._gallery_placeholder)
+                    self._gallery_placeholder.hide()
+                    self._gallery_placeholder.deleteLater()
+                    self._gallery_placeholder = None
+                item = self._criar_item_lista(familia)
+                self._gallery_layout.insertWidget(self._gallery_layout.count() - 1, item)
+                self._cards.append(item)
+            except Exception:
+                self._batch_errors += 1
+
+        self._batch_index = fim
+        percentual = 100 if self._batch_total == 0 else int((self._batch_index / self._batch_total) * 100)
+        restante = max(self._batch_total - self._batch_index, 0)
+        self.label_total.setText(f"Exibindo {self._batch_index} de {total_base} famílias")
+        self._set_progress_state(
+            visible=True,
+            title="Carregando famílias",
+            subtitle=f"{self._batch_index} registros adicionados. Restam {restante}.",
+            percent=percentual,
+        )
+
+        if self._batch_index < self._batch_total:
+            QTimer.singleShot(12, lambda: self._processar_proximo_lote(generation, total_base))
+            return
+
+        mensagem_final = f"{self._batch_total} famílias carregadas com sucesso."
+        if self._batch_errors:
+            mensagem_final = f"{self._batch_total - self._batch_errors} famílias carregadas. {self._batch_errors} itens apresentaram falha."
+            self.notification.show_message(
+                "Alguns registros não puderam ser exibidos, mas o sistema continua operacional.",
+                "error",
+            )
+
+        self._set_progress_state(
+            visible=True,
+            title="Carregamento concluído",
+            subtitle=mensagem_final,
+            percent=100,
+        )
+        QTimer.singleShot(1800, lambda: self._hide_progress_if_idle(generation))
+
+    def _build_empty_gallery(self, empty_message=""):
+        anterior = self.scroll_area.takeWidget()
+        if anterior is not None:
+            anterior.deleteLater()
+
+        self._gallery_container = QWidget()
+        self._gallery_container.setStyleSheet("background-color: transparent;")
+        self._gallery_layout = QVBoxLayout(self._gallery_container)
+        self._gallery_layout.setContentsMargins(0, 0, 0, 0)
+        self._gallery_layout.setSpacing(8)
+
+        if empty_message:
+            self._gallery_placeholder = QLabel(empty_message)
+            self._gallery_placeholder.setAlignment(Qt.AlignCenter)
+            self._gallery_placeholder.setStyleSheet(
+                "QLabel { color: #6B7280; font-size: 14px; padding: 28px; "
+                "background-color: #F9FAFB; border: 1px dashed #D1D5DB; border-radius: 12px; }"
+            )
+            self._gallery_layout.addWidget(self._gallery_placeholder)
+        else:
+            self._gallery_placeholder = None
+
+        self._gallery_layout.addStretch()
+        self.scroll_area.setWidget(self._gallery_container)
+
+    def _set_progress_state(self, visible, title, subtitle, percent):
+        self.progress_card.setVisible(visible)
+        self.progress_title.setText(title)
+        self.progress_subtitle.setText(subtitle)
+        self.progress_bar.setValue(max(0, min(100, int(percent))))
+        self.progress_percent.setText(f"{max(0, min(100, int(percent)))}%")
+
+    def _hide_progress_if_idle(self, generation):
+        if generation == self._load_generation and self._batch_index >= self._batch_total:
+            self.progress_card.hide()
 
     def on_scroll(self):
         pass
@@ -749,11 +937,12 @@ class PainelPrincipal(QWidget):
         QApplication.quit()
 
 def iniciar_painel():
+    apply_windows_app_user_model_id()
     app = QApplication(sys.argv)
     try:
-        icon_path = get_icon_path()
-        if icon_path:
-            app.setWindowIcon(QIcon(icon_path))
+        icon = get_app_icon()
+        if not icon.isNull():
+            app.setWindowIcon(icon)
     except Exception:
         pass
     painel = PainelPrincipal()
